@@ -1,0 +1,11 @@
+# logs
+*.log
+
+# design-stuff
+.design/
+
+# environment
+.venv/
+
+# docs
+tech.md
