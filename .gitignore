@@ -1,11 +1,15 @@
-# logs
+# log
 *.log
 
-# design-stuff
+# design stuff
 .design/
+*.aseprite
 
 # environment
 .venv/
 
 # docs
-tech.md
+tech.*
+
+# linter
+.markdownlint.*
