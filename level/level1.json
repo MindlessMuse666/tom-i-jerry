@@ -1,0 +1,26 @@
+{
+    "background": "asset/visual/ui/bg/bg_kitchen.png",
+    "music": "asset/audio/music/level1.mp3",
+    "width": 3000,
+    "height": 720,
+    "spawn_point": [100, 500],
+    "platforms": [
+        [0, 650, 3000, 70],
+        [400, 500, 200, 20],
+        [700, 400, 200, 20],
+        [1000, 300, 200, 20],
+        [1300, 450, 300, 20]
+    ],
+    "moving_platforms": [
+        {"x": 1700, "y": 400, "width": 150, "height": 20, "path": [0, -200], "speed": 100}
+    ],
+    "enemies": [],
+    "traps": [],
+    "crates": [],
+    "cheeses": [
+        [450, 450],
+        [750, 350],
+        [1050, 250]
+    ],
+    "exit_zone": [2800, 550, 100, 100]
+}

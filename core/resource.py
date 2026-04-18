@@ -23,11 +23,18 @@ class ResourceManager:
     def get_sound(self, path):
         if path not in self.sounds:
             if os.path.exists(path):
-                self.sounds[path] = pygame.mixer.Sound(path)
+                sound = pygame.mixer.Sound(path)
+                from setting import settings
+                sound.set_volume(settings.sfx_volume)
+                self.sounds[path] = sound
             else:
                 print(f"Warning: Sound not found at {path}")
                 return None
         return self.sounds[path]
+
+    def set_sfx_volume(self, volume):
+        for sound in self.sounds.values():
+            sound.set_volume(volume)
 
     def get_font(self, path, size):
         key = (path, size)

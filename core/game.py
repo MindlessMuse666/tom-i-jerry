@@ -18,9 +18,11 @@ class Game:
         
         from scene.menu import MenuScene
         from scene.settings import SettingsScene
+        from scene.level import LevelScene
         
         self.state_machine.add_state("MENU", MenuScene(self))
         self.state_machine.add_state("SETTINGS", SettingsScene(self))
+        self.state_machine.add_state("LEVEL", LevelScene(self))
         self.state_machine.set_state("MENU")
 
     def handle_events(self):

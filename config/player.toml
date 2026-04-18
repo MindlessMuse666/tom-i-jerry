@@ -1,0 +1,7 @@
+# Player parameters
+speed = 200.0
+jump_force = -500.0
+gravity = 1200.0
+max_health = 5
+invulnerability_time = 2.0
+decoy_cooldown = 2.5

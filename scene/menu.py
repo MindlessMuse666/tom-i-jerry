@@ -17,9 +17,7 @@ class MenuScene(Scene):
         ]
 
     def start_game(self):
-        # Placeholder for starting the game
-        print("Starting game...")
-        # self.game.state_machine.set_state("LEVEL", level=1)
+        self.game.state_machine.set_state("LEVEL", level_id=1)
 
     def open_settings(self):
         self.game.state_machine.set_state("SETTINGS")

@@ -31,7 +31,7 @@ class SettingsScene(Scene):
 
     def set_sfx_volume(self, value):
         settings.sfx_volume = value
-        # Update volume for all loaded sounds? Or just set global
+        resource_manager.set_sfx_volume(value)
         settings.save()
 
     def go_back(self):
