@@ -22,6 +22,7 @@ class Player(pygame.sprite.Sprite):
         
         # Animation
         self.sprite_sheet = resource_manager.get_image(PLAYER_PATH)
+        self.scale_factor = 2.0 # Scale player 2x
         self.frames = self.load_frames()
         self.state = "IDLE"
         self.frame_index = 0
@@ -31,7 +32,7 @@ class Player(pygame.sprite.Sprite):
         
         self.image = self.frames["IDLE"][0]
         self.rect = self.image.get_rect(topleft=(x, y))
-        self.hitbox = self.rect.inflate(-10, -4) # Slightly smaller hitbox
+        self.hitbox = self.rect.inflate(-20, -8) # Adjusted hitbox for 2x scale
         
         # Stats
         self.health = self.config["max_health"]
@@ -67,7 +68,9 @@ class Player(pygame.sprite.Sprite):
     def get_frame(self, col, row):
         surf = pygame.Surface((32, 32), pygame.SRCALPHA)
         surf.blit(self.sprite_sheet, (0, 0), (col * 32, row * 32, 32, 32))
-        return surf
+        # Scale the frame
+        new_size = (int(32 * self.scale_factor), int(32 * self.scale_factor))
+        return pygame.transform.scale(surf, new_size)
 
     def handle_input(self):
         keys = pygame.key.get_pressed()
@@ -127,12 +130,16 @@ class Player(pygame.sprite.Sprite):
                         self.vel.y = 0
 
     def update_state(self):
+        new_state = "IDLE"
         if not self.on_ground:
-            self.state = "JUMP"
-        elif abs(self.vel.x) > 0:
-            self.state = "WALK"
-        else:
-            self.state = "IDLE"
+            new_state = "JUMP"
+        elif abs(self.vel.x) > 0.1: # Use small threshold
+            new_state = "WALK"
+        
+        if new_state != self.state:
+            self.state = new_state
+            self.frame_index = 0
+            self.animation_timer = 0
 
     def animate(self, dt):
         self.animation_timer += dt

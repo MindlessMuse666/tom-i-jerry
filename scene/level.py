@@ -38,8 +38,12 @@ class LevelScene(Scene):
             
         self.camera = Camera(self.level_data["width"], self.level_data["height"])
         
-        # Background
-        self.background = resource_manager.get_image(self.level_data["background"])
+        # Background - scale to screen height 720
+        raw_bg = resource_manager.get_image(self.level_data["background"])
+        bg_height = 720
+        bg_aspect = raw_bg.get_width() / raw_bg.get_height()
+        bg_width = int(bg_height * bg_aspect)
+        self.background = pygame.transform.scale(raw_bg, (bg_width, bg_height))
         self.bg_width = self.background.get_width()
         
         # Spawn player
