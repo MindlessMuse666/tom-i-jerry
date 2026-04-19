@@ -1,8 +1,19 @@
 import os
+import pygame
+import ctypes
 
-# Screen dimensions
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
+# DPI Awareness for Windows
+try:
+    ctypes.windll.user32.SetProcessDPIAware()
+    SCREEN_WIDTH = ctypes.windll.user32.GetSystemMetrics(0)
+    SCREEN_HEIGHT = ctypes.windll.user32.GetSystemMetrics(1)
+except Exception:
+    # Fallback for non-windows or errors
+    SCREEN_WIDTH = 1280
+    SCREEN_HEIGHT = 720
+
+LOGICAL_WIDTH = 1280
+LOGICAL_HEIGHT = 720
 FPS = 60
 
 # Colors

@@ -1,7 +1,7 @@
 import pygame
 from scene.base import Scene
 from ui.button import Button
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, BG_MENU, BG_KITCHEN
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, BG_MENU, BG_KITCHEN, LOGICAL_WIDTH, LOGICAL_HEIGHT
 from core.resource import resource_manager
 from core.mixer import mixer
 import os
@@ -17,7 +17,7 @@ class MenuScene(Scene):
         self.bg = pygame.transform.scale(raw_bg, (bg_width, bg_height))
         self.bg_width = self.bg.get_width()
         
-        center_x = SCREEN_WIDTH // 2
+        center_x = LOGICAL_WIDTH // 2
         self.buttons = [
             Button(center_x, 300, "Start Game", self.start_game),
             Button(center_x, 400, "Settings", self.open_settings),
@@ -46,7 +46,7 @@ class MenuScene(Scene):
     def draw(self, screen):
         # Draw tiled/scaled background
         screen.blit(self.bg, (0, 0))
-        if self.bg_width < SCREEN_WIDTH:
+        if self.bg_width < LOGICAL_WIDTH:
             screen.blit(self.bg, (self.bg_width, 0))
             
         for button in self.buttons:

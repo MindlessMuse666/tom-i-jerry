@@ -2,7 +2,7 @@ import pygame
 from scene.base import Scene
 from ui.button import Button
 from ui.slider import Slider
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, BG_MENU, DEFAULT_FONT
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, BG_MENU, DEFAULT_FONT, LOGICAL_WIDTH, LOGICAL_HEIGHT
 from core.resource import resource_manager
 from setting import settings
 
@@ -12,7 +12,7 @@ class SettingsScene(Scene):
         self.bg = resource_manager.get_image(BG_MENU)
         self.font = resource_manager.get_font(DEFAULT_FONT, 48)
         
-        center_x = SCREEN_WIDTH // 2
+        center_x = LOGICAL_WIDTH // 2
         
         # Volume Sliders
         self.music_slider = Slider(center_x - 100, 300, 200, settings.music_volume, self.set_music_volume)
@@ -46,8 +46,8 @@ class SettingsScene(Scene):
         screen.blit(self.bg, (0, 0))
         
         # Draw labels
-        screen.blit(self.music_label, (SCREEN_WIDTH // 2 - self.music_label.get_width() // 2, 250))
-        screen.blit(self.sfx_label, (SCREEN_WIDTH // 2 - self.sfx_label.get_width() // 2, 350))
+        screen.blit(self.music_label, (LOGICAL_WIDTH // 2 - self.music_label.get_width() // 2, 250))
+        screen.blit(self.sfx_label, (LOGICAL_WIDTH // 2 - self.sfx_label.get_width() // 2, 350))
         
         self.music_slider.draw(screen)
         self.sfx_slider.draw(screen)

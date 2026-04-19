@@ -1,16 +1,18 @@
 import pygame
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, LOGICAL_WIDTH, LOGICAL_HEIGHT
 from setting import settings
 from core.state_machine import StateMachine
 
 class Game:
     def __init__(self):
         # Set up display
-        flags = pygame.SCALED
-        if settings.fullscreen:
-            flags |= pygame.FULLSCREEN
+        # Use SCALED to automatically handle the internal logical resolution
+        # and FULLSCREEN to use the actual monitor resolution
+        flags = pygame.SCALED | pygame.FULLSCREEN
         
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), flags)
+        # We set the logical resolution as the base, 
+        # and SCALED will stretch it to SCREEN_WIDTH/HEIGHT
+        self.screen = pygame.display.set_mode((LOGICAL_WIDTH, LOGICAL_HEIGHT), flags)
         pygame.display.set_caption("Jerry's Escape from the Crazy Cat's House")
         
         self.running = True

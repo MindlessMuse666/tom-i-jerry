@@ -1,7 +1,7 @@
 import pygame
 from scene.base import Scene
 from ui.button import Button
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, DEFAULT_FONT, BG_MENU
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, DEFAULT_FONT, BG_MENU, LOGICAL_WIDTH, LOGICAL_HEIGHT
 from core.resource import resource_manager
 from core.mixer import mixer
 import os
@@ -14,10 +14,10 @@ class GameOverScene(Scene):
         self.font_medium = resource_manager.get_font(DEFAULT_FONT, 48)
         
         # Background blur/darken will be handled in draw
-        self.overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        self.overlay = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT), pygame.SRCALPHA)
         self.overlay.fill((0, 0, 0, 180)) # Dark semi-transparent overlay
         
-        center_x = SCREEN_WIDTH // 2
+        center_x = LOGICAL_WIDTH // 2
         self.buttons = [
             Button(center_x, 450, "Restart", self.restart_level),
             Button(center_x, 550, "Main Menu", self.go_to_menu)
@@ -56,12 +56,12 @@ class GameOverScene(Scene):
         
         # Game Over Text
         title_surf = self.font_large.render("GAME OVER", True, (255, 50, 50))
-        title_rect = title_surf.get_rect(center=(SCREEN_WIDTH // 2, 200))
+        title_rect = title_surf.get_rect(center=(LOGICAL_WIDTH // 2, 200))
         screen.blit(title_surf, title_rect)
         
         # Score Text
         score_surf = self.font_medium.render(f"Cheese Collected: {self.cheese_count}", True, (255, 255, 255))
-        score_rect = score_surf.get_rect(center=(SCREEN_WIDTH // 2, 300))
+        score_rect = score_surf.get_rect(center=(LOGICAL_WIDTH // 2, 300))
         screen.blit(score_surf, score_rect)
         
         for button in self.buttons:

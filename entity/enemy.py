@@ -28,10 +28,10 @@ class Enemy(pygame.sprite.Sprite):
                 self.config = tomllib.load(f)
                 
         self.sprite_sheet = resource_manager.get_image(image_path)
-        self.scale_factor = 3 # Increased scale
+        self.scale_factor = 3
         self.frames = self.load_frames()
         
-        self.state = "IDLE"
+        self.state = "PATROL" # PATROL, CHASE, LOST
         self.frame_index = 0
         self.animation_speed = 6
         self.animation_timer = 0
@@ -46,16 +46,14 @@ class Enemy(pygame.sprite.Sprite):
         self.on_ground = False
         self.health = self.config["health"]
         
-        # Patrol logic
+        # Patrol settings
         self.start_x = x
         self.patrol_dist = self.config.get("patrol_distance", 200.0)
-        self.patrol_dir = 1 # 1 for right, -1 for left
+        self.patrol_dir = 1 # 1 right, -1 left
         
-        # AI state
-        self.target_player = None
+        # Timers
         self.lost_timer = 0
         self.lost_pause_duration = 2.0
-        self.is_paused = False
 
     def load_frames(self):
         frames = {"IDLE": [], "WALK": []}
@@ -66,107 +64,126 @@ class Enemy(pygame.sprite.Sprite):
         return frames
 
     def update(self, dt, player, platforms):
-        # Gravity
+        # 1. Gravity
         self.vel.y += self.gravity * dt
         
-        # AI Logic
+        # 2. Logic based on distance to player
         dist_vec = pygame.Vector2(player.rect.center) - pygame.Vector2(self.rect.center)
         dist = dist_vec.length()
         
         if dist < self.config["chase_radius"]:
-            # Chasing player
-            self.state = "WALK"
-            self.is_paused = False
+            # Switch to chase
+            self.state = "CHASE"
             self.lost_timer = 0
-            
-            # Using 10px buffer to prevent rapid switching when overlapping
+        elif self.state == "CHASE":
+            # Just lost player
+            self.state = "LOST"
+            self.lost_timer = 0
+            self.vel.x = 0
+
+        # 3. Action based on current state
+        if self.state == "CHASE":
+            # Chase player
             if abs(player.rect.centerx - self.rect.centerx) > 10:
-                if player.rect.centerx > self.rect.centerx:
-                    self.vel.x = self.config["speed"]
-                    self.facing_right = True
-                    self.patrol_dir = 1
-                else:
-                    self.vel.x = -self.config["speed"]
-                    self.facing_right = False
-                    self.patrol_dir = -1
-        else:
-            # Player lost or not in range
-            if not self.is_paused and self.state == "WALK" and dist >= self.config["chase_radius"]:
-                # Just lost player
-                self.is_paused = True
-                self.lost_timer = 0
-                self.state = "IDLE"
-                self.vel.x = 0
-            
-            if self.is_paused:
-                self.lost_timer += dt
-                if self.lost_timer >= self.lost_pause_duration:
-                    self.is_paused = False
-                    # Use current facing to decide patrol direction
-                    self.patrol_dir = 1 if self.facing_right else -1
-            else:
-                # Patrol logic
-                self.state = "WALK"
+                self.patrol_dir = 1 if player.rect.centerx > self.rect.centerx else -1
                 self.vel.x = self.config["speed"] * self.patrol_dir
                 self.facing_right = (self.patrol_dir == 1)
+            else:
+                self.vel.x = 0
+        
+        elif self.state == "LOST":
+            # Stay still for a bit
+            self.vel.x = 0
+            self.lost_timer += dt
+            if self.lost_timer >= self.lost_pause_duration:
+                self.state = "PATROL"
+                # Keep current facing for patrol start
+                self.patrol_dir = 1 if self.facing_right else -1
+        
+        elif self.state == "PATROL":
+            # Normal patrol
+            self.vel.x = self.config["speed"] * self.patrol_dir
+            self.facing_right = (self.patrol_dir == 1)
+            
+            # 3.1 Edge Detection (Don't fall off during patrol)
+            # Only if on ground
+            if self.on_ground:
+                # Check point ahead and below
+                look_ahead_x = self.rect.right + 5 if self.patrol_dir == 1 else self.rect.left - 5
+                look_ahead_rect = pygame.Rect(look_ahead_x, self.rect.bottom + 5, 1, 1)
                 
-                # Check patrol boundaries
-                if self.patrol_dir == 1 and self.pos.x >= self.start_x + self.patrol_dist:
-                    self.patrol_dir = -1
-                    self.facing_right = False
-                elif self.patrol_dir == -1 and self.pos.x <= self.start_x:
-                    self.patrol_dir = 1
-                    self.facing_right = True
+                any_platform_ahead = False
+                for platform in platforms:
+                    if look_ahead_rect.colliderect(platform.rect):
+                        any_platform_ahead = True
+                        break
+                
+                if not any_platform_ahead:
+                    self.patrol_dir *= -1
+                    self.vel.x = 0 # Stop for this frame
+            
+            # 3.2 Boundary check
+            if self.patrol_dir == 1 and self.pos.x >= self.start_x + self.patrol_dist:
+                self.patrol_dir = -1
+            elif self.patrol_dir == -1 and self.pos.x <= self.start_x:
+                self.patrol_dir = 1
 
-        # Movement - Horizontal
+        # 4. Movement execution
+        # Horizontal
         self.pos.x += self.vel.x * dt
         self.rect.x = round(self.pos.x)
         if self.check_collisions(platforms, 'horizontal'):
-            # If hit a wall during patrol, reverse direction
-            if not self.is_paused and dist >= self.config["chase_radius"]:
+            if self.state == "PATROL":
                 self.patrol_dir *= -1
-                self.facing_right = (self.patrol_dir == 1)
-        
-        # Movement - Vertical
+            
+        # Vertical
         self.pos.y += self.vel.y * dt
         self.rect.y = round(self.pos.y)
         self.check_collisions(platforms, 'vertical')
         
-        self.animate(dt)
+        # 5. Out of bounds check (Cleanup if really fell off)
+        if self.pos.y > 2000: # Far below the map
+            self.kill()
+            
+        self.update_animations(dt)
+
+    def update_animations(self, dt):
+        # Choose anim state
+        anim_state = "IDLE" if abs(self.vel.x) < 1 else "WALK"
+        
+        self.animation_timer += dt
+        if self.animation_timer >= 1.0 / self.animation_speed:
+            self.animation_timer = 0
+            self.frame_index = (self.frame_index + 1) % len(self.frames[anim_state])
+            
+        self.image = self.frames[anim_state][self.frame_index]
+        if not self.facing_right:
+            self.image = pygame.transform.flip(self.image, True, False)
 
     def check_collisions(self, platforms, direction):
         hit = False
+        if direction == 'vertical':
+            self.on_ground = False # Reset ground state before vertical check
+
         for platform in platforms:
             if self.rect.colliderect(platform.rect):
                 hit = True
                 if direction == 'horizontal':
                     if self.vel.x > 0:
                         self.rect.right = platform.rect.left
-                        self.pos.x = self.rect.x
                     elif self.vel.x < 0:
                         self.rect.left = platform.rect.right
-                        self.pos.x = self.rect.x
+                    self.pos.x = float(self.rect.x) # Sync position!
                 else:
                     if self.vel.y > 0:
                         self.rect.bottom = platform.rect.top
-                        self.pos.y = self.rect.y
                         self.vel.y = 0
                         self.on_ground = True
                     elif self.vel.y < 0:
                         self.rect.top = platform.rect.bottom
-                        self.pos.y = self.rect.y
                         self.vel.y = 0
+                    self.pos.y = float(self.rect.y) # Sync position!
         return hit
-
-    def animate(self, dt):
-        self.animation_timer += dt
-        if self.animation_timer >= 1.0 / self.animation_speed:
-            self.animation_timer = 0
-            self.frame_index = (self.frame_index + 1) % len(self.frames[self.state])
-            
-        self.image = self.frames[self.state][self.frame_index]
-        if not self.facing_right:
-            self.image = pygame.transform.flip(self.image, True, False)
 
 class Tom(Enemy):
     def __init__(self, x, y):

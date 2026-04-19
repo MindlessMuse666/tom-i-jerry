@@ -2,7 +2,7 @@ import pygame
 from core.resource import resource_manager
 from constant import (
     HEART_FULL, HEART_EMPTY, CHEESE_HUD, CHEESE_HUD_EMPTY, 
-    DEFAULT_FONT, SCREEN_WIDTH
+    DEFAULT_FONT, SCREEN_WIDTH, LOGICAL_WIDTH
 )
 
 class HUD:
@@ -20,14 +20,14 @@ class HUD:
         
         # 2. Health (top right)
         margin = 10
-        x_start = SCREEN_WIDTH - (max_health * (32 + margin)) - 20
+        x_start = LOGICAL_WIDTH - (max_health * (32 + margin)) - 20
         for i in range(max_health):
             img = self.heart_full if i < player_health else self.heart_empty
             screen.blit(img, (x_start + i * (32 + margin), 20))
             
         # 3. Cheese scale (under health)
         scale_size = 5
-        x_start_scale = SCREEN_WIDTH - (scale_size * (32 + margin)) - 20
+        x_start_scale = LOGICAL_WIDTH - (scale_size * (32 + margin)) - 20
         for i in range(scale_size):
             img = self.cheese_full if i < scale_cheese else self.cheese_empty
             screen.blit(img, (x_start_scale + i * (32 + margin), 60))

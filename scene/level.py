@@ -146,19 +146,18 @@ class LevelScene(Scene):
             self.game.state_machine.set_state("GAME_OVER", cheese_count=self.total_cheese)
 
         # 4. Crate/Enemy interaction
-        for crate in list(self.crates): # Use list to avoid modification during iteration
+        for crate in list(self.crates):
             if crate.is_broken: continue
-            enemies_hit_crate = pygame.sprite.spritecollide(crate, self.enemies, False)
-            for enemy in enemies_hit_crate:
-                if crate.activated_by_player:
-                    # Capture crate pos before breaking
+            
+            # A crate can only kill enemies if it's actually MOVING horizontally 
+            # and was activated by the player
+            if crate.activated_by_player and abs(crate.vel.x) > 10.0:
+                enemies_hit_crate = pygame.sprite.spritecollide(crate, self.enemies, False)
+                for enemy in enemies_hit_crate:
                     cx, cy = crate.rect.x, crate.rect.y
                     if crate.break_crate():
                         enemy.kill()
-                        # Spawn cheese from crate
                         self.cheeses.add(Cheese(cx, cy))
-                        # Add broken crate back to a decorative group if needed
-                        # but for now we just remove it for collision purposes
         
         self.camera.update(self.player.rect)
 

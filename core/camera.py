@@ -1,5 +1,5 @@
 import pygame
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, LOGICAL_WIDTH, LOGICAL_HEIGHT
 
 class Camera:
     def __init__(self, width, height):
@@ -12,13 +12,13 @@ class Camera:
         return entity.rect.move(-self.offset.x, -self.offset.y)
 
     def update(self, target_rect):
-        # Target position is center of screen
-        target_x = target_rect.centerx - SCREEN_WIDTH // 2
-        target_y = target_rect.centery - SCREEN_HEIGHT // 2
+        # Target position is center of logical screen
+        target_x = target_rect.centerx - LOGICAL_WIDTH // 2
+        target_y = target_rect.centery - LOGICAL_HEIGHT // 2
         
         # Clamp to level boundaries
-        target_x = max(0, min(target_x, self.width - SCREEN_WIDTH))
-        target_y = max(0, min(target_y, self.height - SCREEN_HEIGHT))
+        target_x = max(0, min(target_x, self.width - LOGICAL_WIDTH))
+        target_y = max(0, min(target_y, self.height - LOGICAL_HEIGHT))
         
         # Lerp
         self.offset.x += (target_x - self.offset.x) * self.lerp_speed
