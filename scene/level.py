@@ -14,6 +14,7 @@ class LevelScene(Scene):
     def __init__(self, game):
         super().__init__(game)
         self.level_data = None
+        self.current_level_id = 1
         self.camera = None
         self.player = None
         self.platforms = pygame.sprite.Group()
@@ -32,6 +33,7 @@ class LevelScene(Scene):
         self.bg_width = 0
 
     def enter(self, level_id=1):
+        self.current_level_id = level_id
         self.load_level(level_id)
         mixer.play_music(self.level_data["music"])
 
@@ -142,8 +144,7 @@ class LevelScene(Scene):
         # 5. Death check
         if self.player.health <= 0:
             # For now, restart the level
-            # In a real game, this would go to a Game Over screen
-            self.enter(level_id=self.level_data.get("id", 1))
+            self.enter(level_id=self.current_level_id)
 
         # 4. Crate/Enemy interaction
         for crate in self.crates:

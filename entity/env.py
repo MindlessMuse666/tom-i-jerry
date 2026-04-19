@@ -104,7 +104,7 @@ class Crate(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.sprite_sheet = resource_manager.get_image(CRATE_PATH)
-        self.scale_factor = 2
+        self.scale_factor = 2 # Reverted to 2x scale (64x64)
         self.frames = self.load_frames()
         self.image = self.frames[0]
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -123,7 +123,7 @@ class Crate(pygame.sprite.Sprite):
         for i in range(2):
             surf = pygame.Surface((32, 32), pygame.SRCALPHA)
             surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
-            frames.append(pygame.transform.scale(surf, (32 * self.scale_factor * 2, 32 * self.scale_factor * 2)))
+            frames.append(pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor)))
         return frames
 
     def update(self, dt, platforms):
