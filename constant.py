@@ -56,6 +56,12 @@ CHEESE_HUD_EMPTY = os.path.join(HUD_DIR, "cheese_empty.png")
 SLIDER_BG = os.path.join(SLIDER_DIR, "slider_bg.png")
 SLIDER_HANDLE = os.path.join(SLIDER_DIR, "slider_handle.png")
 
+# Environment visual paths
+ENV_DIR = os.path.join(UI_DIR, "env")
+GROUND_PATH = os.path.join(ENV_DIR, "ground.png")
+PLATFORM_PATH = os.path.join(ENV_DIR, "platform.png")
+MOVING_PLATFORM_PATH = os.path.join(ENV_DIR, "moving_platform.png")
+
 # Audio paths
 MUSIC_DIR = os.path.join(AUDIO_DIR, "music")
 SFX_DIR = os.path.join(AUDIO_DIR, "sfx")

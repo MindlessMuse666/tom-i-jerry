@@ -22,7 +22,7 @@ class Player(pygame.sprite.Sprite):
         
         # Animation
         self.sprite_sheet = resource_manager.get_image(PLAYER_PATH)
-        self.scale_factor = 2.0 # Scale player 2x
+        self.scale_factor = 3 # Scale player 2x
         self.frames = self.load_frames()
         self.state = "IDLE"
         self.frame_index = 0
@@ -42,6 +42,7 @@ class Player(pygame.sprite.Sprite):
         self.blink_timer = 0
         
         self.on_ground = False
+        self.current_platform = None
 
     def load_frames(self):
         frames = {
@@ -51,16 +52,18 @@ class Player(pygame.sprite.Sprite):
             "HURT": []
         }
         
-        # Row 1: Idle (2 frames)
+        # Row 1 (y=0): Idle (2 frames)
         for i in range(2):
             frames["IDLE"].append(self.get_frame(i, 0))
             
-        # Row 2: Walk (2 frames), 1st is Jump
-        frames["JUMP"].append(self.get_frame(0, 1))
+        # Row 2 (y=1): Walk (2 frames), 1st frame is also for Jump
         for i in range(2):
             frames["WALK"].append(self.get_frame(i, 1))
+        
+        # Jump is first frame of row 2
+        frames["JUMP"].append(self.get_frame(0, 1))
             
-        # Row 3: Hurt (1 frame)
+        # Row 3 (y=2): Hurt (1 frame)
         frames["HURT"].append(self.get_frame(0, 2))
         
         return frames
@@ -93,11 +96,18 @@ class Player(pygame.sprite.Sprite):
         
         # Move horizontal
         self.pos.x += self.vel.x * dt
+        # Add moving platform velocity
+        if self.on_ground and hasattr(self.current_platform, 'vel'):
+            self.pos.x += self.current_platform.vel.x * dt
+            
         self.rect.x = round(self.pos.x)
         self.check_collisions(platforms, 'horizontal')
         
         # Move vertical
         self.pos.y += self.vel.y * dt
+        if self.on_ground and hasattr(self.current_platform, 'vel'):
+            self.pos.y += self.current_platform.vel.y * dt
+            
         self.rect.y = round(self.pos.y)
         self.check_collisions(platforms, 'vertical')
         
@@ -117,6 +127,7 @@ class Player(pygame.sprite.Sprite):
                         self.pos.x = self.rect.x
         else:
             self.on_ground = False
+            self.current_platform = None
             for platform in platforms:
                 if self.rect.colliderect(platform.rect):
                     if self.vel.y > 0:
@@ -124,6 +135,7 @@ class Player(pygame.sprite.Sprite):
                         self.pos.y = self.rect.y
                         self.vel.y = 0
                         self.on_ground = True
+                        self.current_platform = platform
                     elif self.vel.y < 0:
                         self.rect.top = platform.rect.bottom
                         self.pos.y = self.rect.y

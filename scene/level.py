@@ -52,8 +52,14 @@ class LevelScene(Scene):
         
         # Load platforms
         self.platforms.empty()
-        for p in self.level_data["platforms"]:
-            self.platforms.add(Platform(p[0], p[1], p[2], p[3]))
+        from constant import GROUND_PATH
+        for i, p in enumerate(self.level_data["platforms"]):
+            # Use GROUND_PATH for the first platform (ground) or any very wide platform
+            path = GROUND_PATH if i == 0 or p[2] > 1000 else None
+            if path:
+                self.platforms.add(Platform(p[0], p[1], p[2], p[3], image_path=path))
+            else:
+                self.platforms.add(Platform(p[0], p[1], p[2], p[3]))
             
         self.moving_platforms.empty()
         for mp in self.level_data["moving_platforms"]:

@@ -7,7 +7,13 @@ from core.resource import resource_manager
 class MenuScene(Scene):
     def __init__(self, game):
         super().__init__(game)
-        self.bg = resource_manager.get_image(BG_MENU)
+        raw_bg = resource_manager.get_image(BG_MENU)
+        # Scale to screen height 720
+        bg_height = 720
+        bg_aspect = raw_bg.get_width() / raw_bg.get_height()
+        bg_width = int(bg_height * bg_aspect)
+        self.bg = pygame.transform.scale(raw_bg, (bg_width, bg_height))
+        self.bg_width = self.bg.get_width()
         
         center_x = SCREEN_WIDTH // 2
         self.buttons = [
@@ -30,6 +36,10 @@ class MenuScene(Scene):
             button.handle_events(events)
 
     def draw(self, screen):
+        # Draw tiled/scaled background
         screen.blit(self.bg, (0, 0))
+        if self.bg_width < SCREEN_WIDTH:
+            screen.blit(self.bg, (self.bg_width, 0))
+            
         for button in self.buttons:
             button.draw(screen)
