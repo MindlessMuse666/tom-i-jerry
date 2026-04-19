@@ -63,29 +63,43 @@ class Enemy(pygame.sprite.Sprite):
             frames[state].append(pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor)))
         return frames
 
-    def update(self, dt, player, platforms):
+    def update(self, dt, player, platforms, decoys=None):
         # 1. Gravity
         self.vel.y += self.gravity * dt
         
-        # 2. Logic based on distance to player
-        dist_vec = pygame.Vector2(player.rect.center) - pygame.Vector2(self.rect.center)
-        dist = dist_vec.length()
+        # 2. Logic based on distance to player OR decoys
+        target_pos = pygame.Vector2(player.rect.center)
+        target_dist = (target_pos - pygame.Vector2(self.rect.center)).length()
+        is_chasing_decoy = False
         
-        if dist < self.config["chase_radius"]:
+        # Decoys attract enemies even more than player
+        if decoys and len(decoys) > 0:
+            # Get the latest decoy (last in group)
+            latest_decoy = decoys.sprites()[-1]
+            decoy_pos = pygame.Vector2(latest_decoy.rect.center)
+            decoy_dist = (decoy_pos - pygame.Vector2(self.rect.center)).length()
+            
+            # If decoy is within attraction radius, prioritize it!
+            if decoy_dist < self.config["chase_radius"] * 1.5:
+                target_pos = decoy_pos
+                target_dist = decoy_dist
+                is_chasing_decoy = True
+        
+        if target_dist < self.config["chase_radius"] or is_chasing_decoy:
             # Switch to chase
             self.state = "CHASE"
             self.lost_timer = 0
         elif self.state == "CHASE":
-            # Just lost player
+            # Just lost target
             self.state = "LOST"
             self.lost_timer = 0
             self.vel.x = 0
 
         # 3. Action based on current state
         if self.state == "CHASE":
-            # Chase player
-            if abs(player.rect.centerx - self.rect.centerx) > 10:
-                self.patrol_dir = 1 if player.rect.centerx > self.rect.centerx else -1
+            # Chase target (player or decoy)
+            if abs(target_pos.x - self.rect.centerx) > 10:
+                self.patrol_dir = 1 if target_pos.x > self.rect.centerx else -1
                 self.vel.x = self.config["speed"] * self.patrol_dir
                 self.facing_right = (self.patrol_dir == 1)
             else:

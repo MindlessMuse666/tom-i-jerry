@@ -4,8 +4,8 @@ from core.resource import resource_manager
 from core.mixer import mixer
 from constant import (
     PLATFORM_PATH, MOVING_PLATFORM_PATH, GROUND_PATH,
-    CHEESE_PATH, TRAP_PATH, CRATE_PATH,
-    SFX_CHEESE, SFX_TRAP_SNAP, SFX_CRATE_BREAK
+    CHEESE_PATH, TRAP_PATH, CRATE_PATH, HOLE_PATH,
+    SFX_CHEESE, SFX_TRAP_SNAP, SFX_CRATE_BREAK, SFX_WIN
 )
 
 class Platform(pygame.sprite.Sprite):
@@ -190,3 +190,28 @@ class Crate(pygame.sprite.Sprite):
             mixer.play_sfx(self.break_sfx)
             return True
         return False
+
+class Hole(pygame.sprite.Sprite):
+    """
+    The exit point of the level.
+    """
+    def __init__(self, x, y):
+        super().__init__()
+        img = resource_manager.get_image(HOLE_PATH)
+        # Scaling: scale 3, same as Tom/Jerry
+        self.image = pygame.transform.scale(img, (32 * 3, 32 * 3))
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.active = False
+        self.visible = False
+
+    def activate(self):
+        if not self.active:
+            self.active = True
+            self.visible = True
+            # Optional: play a sound or animation here
+            return True
+        return False
+
+    def draw(self, screen, offset):
+        if self.visible:
+            screen.blit(self.image, self.rect.topleft - offset)

@@ -1,7 +1,7 @@
 import pygame
 from core.resource import resource_manager
 from constant import (
-    HEART_FULL, HEART_EMPTY, CHEESE_HUD, CHEESE_HUD_EMPTY, 
+    HEART_FULL, HEART_EMPTY, CHEESE_HUD, CHEESE_HUD_EMPTY, DECOY_PATH,
     DEFAULT_FONT, SCREEN_WIDTH, LOGICAL_WIDTH
 )
 
@@ -11,6 +11,7 @@ class HUD:
         self.heart_empty = resource_manager.get_image(HEART_EMPTY)
         self.cheese_full = resource_manager.get_image(CHEESE_HUD)
         self.cheese_empty = resource_manager.get_image(CHEESE_HUD_EMPTY)
+        self.decoy_img = pygame.transform.scale(resource_manager.get_image(DECOY_PATH), (32, 32))
         self.font = resource_manager.get_font(DEFAULT_FONT, 28) # Reduced from 36 to 28
 
     def draw(self, screen, player_health, max_health, cheese_count, scale_cheese):

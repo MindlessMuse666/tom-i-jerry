@@ -3,8 +3,9 @@ import json
 import os
 from scene.base import Scene
 from entity.player import Player
-from entity.env import Platform, MovingPlatform, Cheese, Trap, Crate
+from entity.env import Platform, MovingPlatform, Cheese, Trap, Crate, Hole
 from entity.enemy import Tom, Broom
+from entity.projectile import Decoy
 from core.camera import Camera
 from core.resource import resource_manager
 from core.mixer import mixer
@@ -23,6 +24,8 @@ class LevelScene(Scene):
         self.traps = pygame.sprite.Group()
         self.crates = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
+        self.decoys = pygame.sprite.Group()
+        self.hole = None
         self.hud = HUD()
         
         # Game stats for HUD
@@ -94,17 +97,36 @@ class LevelScene(Scene):
             elif en["type"] == "broom":
                 self.enemies.add(Broom(en["x"], en["y"]))
             
+        # Load Hole (if exists in level data)
+        if "hole" in self.level_data:
+            hx, hy = self.level_data["hole"]
+            self.hole = Hole(hx, hy)
+        else:
+            self.hole = None
+            
         # Initial stats
         self.total_cheese = 0
         self.scale_cheese = 0
+        self.cheeses_to_spawn_hole = len(self.cheeses) # All cheeses on level
 
     def handle_events(self, events):
+        self.player.handle_input()
+        
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.game.state_machine.set_state("MENU") # Should be PAUSE
-        
-        self.player.handle_input()
+                if event.key == pygame.K_f or event.key == pygame.K_LCTRL:
+                    # Get mouse pos and convert to world coords
+                    mouse_pos = pygame.mouse.get_pos()
+                    world_mouse = mouse_pos + self.camera.offset
+                    self.player.throw_decoy(self.decoys, world_mouse)
+                elif event.key == pygame.K_ESCAPE:
+                    self.game.state_machine.set_state("MENU")
+            
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1: # Left Click
+                    mouse_pos = pygame.mouse.get_pos()
+                    world_mouse = mouse_pos + self.camera.offset
+                    self.player.throw_decoy(self.decoys, world_mouse)
 
     def update(self, dt):
         self.moving_platforms.update(dt)
@@ -114,8 +136,9 @@ class LevelScene(Scene):
         # Filter out broken crates so they don't have collision
         solids = list(self.platforms) + list(self.moving_platforms) + [c for c in self.crates if not c.is_broken]
         
+        self.decoys.update(dt, solids)
         self.player.update(dt, solids)
-        self.enemies.update(dt, self.player, solids)
+        self.enemies.update(dt, self.player, solids, self.decoys)
         self.crates.update(dt, solids)
         
         # Player collisions
@@ -129,6 +152,18 @@ class LevelScene(Scene):
                 self.scale_cheese = 0
                 if self.player.health < self.player.config["max_health"]:
                     self.player.health += 1
+            
+            # Hole appearance condition
+            if self.total_cheese >= self.cheeses_to_spawn_hole and self.hole:
+                self.hole.activate()
+
+        # 1.1 Hole collision
+        if self.hole and self.hole.active:
+            if self.player.rect.colliderect(self.hole.rect):
+                # Level complete!
+                self.game.state_machine.set_state("LEVEL_WIN", 
+                                                cheese_count=self.total_cheese, 
+                                                level_id=self.current_level_id)
 
         # 2. Traps
         traps_hit = pygame.sprite.spritecollide(self.player, self.traps, False)
@@ -146,7 +181,7 @@ class LevelScene(Scene):
         if self.player.health <= 0:
             self.game.state_machine.set_state("GAME_OVER", cheese_count=self.total_cheese)
 
-        # 4. Crate/Enemy interaction
+        # 4. Crate/Enemy/Decoy interaction
         for crate in list(self.crates):
             if crate.is_broken: continue
             
@@ -159,6 +194,11 @@ class LevelScene(Scene):
                     if crate.break_crate():
                         enemy.kill()
                         self.cheeses.add(Cheese(cx, cy))
+                
+                # Crate also breaks if it hits a decoy (distraction mechanic)
+                decoys_hit_crate = pygame.sprite.spritecollide(crate, self.decoys, True)
+                if decoys_hit_crate:
+                    crate.break_crate()
         
         self.camera.update(self.player.rect)
 
@@ -170,12 +210,17 @@ class LevelScene(Scene):
         screen.blit(self.background, (bg_offset + self.bg_width, 0))
         
         # Draw entities with camera offset
-        groups = [self.platforms, self.moving_platforms, self.cheeses, self.traps, self.crates, self.enemies]
+        groups = [self.platforms, self.moving_platforms, self.cheeses, self.traps, self.crates, self.enemies, self.decoys]
         for group in groups:
             for sprite in group:
                 screen.blit(sprite.image, sprite.rect.topleft - self.camera.offset)
+        
+        # Hole
+        if self.hole:
+            self.hole.draw(screen, self.camera.offset)
             
         self.player.draw(screen, self.camera.offset)
         
         # HUD
-        self.hud.draw(screen, self.player.health, self.player.config["max_health"], self.total_cheese, self.scale_cheese)
+        self.hud.draw(screen, self.player.health, self.player.config["max_health"], 
+                      self.total_cheese, self.scale_cheese)

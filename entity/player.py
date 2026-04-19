@@ -49,6 +49,10 @@ class Player(pygame.sprite.Sprite):
         
         self.on_ground = False
         self.current_platform = None
+        
+        # Decoy throw logic
+        self.decoy_cooldown = 0
+        self.throw_force = 1000 # Base force for throwing
 
     def load_all_frames(self):
         states = ["IDLE", "WALK", "JUMP", "HURT"]
@@ -134,6 +138,45 @@ class Player(pygame.sprite.Sprite):
         self.update_state()
         self.animate(dt)
         self.update_invulnerability(dt)
+        
+        # Cooldown for throwing
+        if self.decoy_cooldown > 0:
+            self.decoy_cooldown -= dt
+
+    def throw_decoy(self, decoys_group, target_pos=None):
+        """
+        Jerry throws a cheese decoy towards target_pos (world coordinates).
+        If target_pos is None, throws in facing direction.
+        """
+        if self.decoy_cooldown <= 0:
+            from entity.projectile import Decoy
+            # Initial position: Jerry's center
+            start_x = self.rect.centerx
+            start_y = self.rect.centery
+            
+            if target_pos:
+                # Calculate direction vector to target
+                target_vec = pygame.Vector2(target_pos) - pygame.Vector2(start_x, start_y)
+                if target_vec.length() > 0:
+                    # Normalize and scale by throw force
+                    # We also want a slight upward arc, but if user points somewhere, we follow that
+                    # Limit force to prevent too fast projectiles
+                    force = min(target_vec.length() * 2, self.throw_force)
+                    velocity = target_vec.normalize() * force
+                    vx, vy = velocity.x, velocity.y
+                else:
+                    vx, vy = 0, 0
+            else:
+                # Default throw if no target (fallback)
+                vx = self.throw_force * 0.8 if self.facing_right else -self.throw_force * 0.8
+                vy = -self.throw_force * 0.4
+            
+            decoy = Decoy(start_x, start_y, vx, vy)
+            decoys_group.add(decoy)
+            
+            self.decoy_cooldown = 0.5 # 0.5 seconds between throws
+            return True
+        return False
 
     def check_collisions(self, platforms, direction):
         if direction == 'horizontal':
