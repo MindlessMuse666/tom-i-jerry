@@ -82,6 +82,7 @@ class Trap(pygame.sprite.Sprite):
         frames = []
         for i in range(2):
             surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+            # Frame 0: Open, Frame 1: Closed
             surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
             frames.append(pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor)))
         return frames
@@ -116,12 +117,16 @@ class Crate(pygame.sprite.Sprite):
         self.is_broken = False
         self.activated_by_player = False
         self.broken_timer = 0
-        self.broken_duration = 1.0 # Duration before chips disappear
+        self.broken_duration = 0.3 # Reduced to 0.3 seconds as requested
+        
+        # Pre-load sound
+        self.break_sfx = resource_manager.get_sound(SFX_CRATE_BREAK)
 
     def load_frames(self):
         frames = []
         for i in range(2):
             surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+            # Frame 0: Crate, Frame 1: Chips
             surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
             frames.append(pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor)))
         return frames
@@ -131,10 +136,6 @@ class Crate(pygame.sprite.Sprite):
             self.broken_timer += dt
             if self.broken_timer >= self.broken_duration:
                 self.kill()
-            else:
-                # Fade out effect
-                alpha = max(0, 255 * (1 - self.broken_timer / self.broken_duration))
-                self.image.set_alpha(int(alpha))
             return
 
         # Gravity
@@ -179,11 +180,13 @@ class Crate(pygame.sprite.Sprite):
                         self.vel.y = 0
 
     def break_crate(self):
+        """
+        Triggers crate destruction. 
+        Changes sprite to chips, plays sound, and removes collision.
+        """
         if not self.is_broken:
             self.is_broken = True
-            self.image = self.frames[1]
-            # Remove from all solid groups immediately to disable collision
-            self.kill() # This removes it from ALL groups
-            mixer.play_sfx(resource_manager.get_sound(SFX_CRATE_BREAK))
+            self.image = self.frames[1] # Show chips
+            mixer.play_sfx(self.break_sfx)
             return True
         return False

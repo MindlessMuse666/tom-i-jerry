@@ -1,6 +1,7 @@
 import pygame
 from core.resource import resource_manager
-from constant import BTN_NORMAL, BTN_HOVER, DEFAULT_FONT
+from core.mixer import mixer
+from constant import BTN_NORMAL, BTN_HOVER, DEFAULT_FONT, SFX_UI_CLICK
 
 class Button:
     def __init__(self, x, y, text, callback, font_size=24): # Reduced default font size from 32 to 24
@@ -11,6 +12,9 @@ class Button:
         self.callback = callback
         self.font = resource_manager.get_font(DEFAULT_FONT, font_size)
         self.is_hovered = False
+        
+        # Pre-load click sound
+        self.click_sfx = resource_manager.get_sound(SFX_UI_CLICK)
 
         # Render text
         self.text_surf = self.font.render(self.text, True, (255, 255, 255))
@@ -25,6 +29,7 @@ class Button:
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1 and self.is_hovered:
+                    mixer.play_sfx(self.click_sfx)
                     self.callback()
 
     def draw(self, screen):

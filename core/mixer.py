@@ -3,20 +3,16 @@ from setting import settings
 
 class Mixer:
     def __init__(self):
-        self.channels = []
-        for i in range(8): # 8 channels for polyphony
-            self.channels.append(pygame.mixer.Channel(i))
+        # Initialize mixer with more channels
+        pygame.mixer.set_num_channels(16)
 
     def play_sfx(self, sound):
         if sound:
             sound.set_volume(settings.sfx_volume)
-            # Find an idle channel
-            for channel in self.channels:
-                if not channel.get_busy():
-                    channel.play(sound)
-                    return
-            # If all busy, just play on first
-            self.channels[0].play(sound)
+            # Use pygame's built-in channel management for better reliability
+            channel = pygame.mixer.find_channel(True)
+            if channel:
+                channel.play(sound)
 
     def play_music(self, music_path, loop=-1, fade_ms=500):
         pygame.mixer.music.load(music_path)

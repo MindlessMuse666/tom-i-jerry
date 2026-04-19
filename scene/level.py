@@ -111,7 +111,8 @@ class LevelScene(Scene):
         self.traps.update(dt)
         
         # Solid platforms for player and other entities
-        solids = list(self.platforms) + list(self.moving_platforms) + list(self.crates)
+        # Filter out broken crates so they don't have collision
+        solids = list(self.platforms) + list(self.moving_platforms) + [c for c in self.crates if not c.is_broken]
         
         self.player.update(dt, solids)
         self.enemies.update(dt, self.player, solids)
