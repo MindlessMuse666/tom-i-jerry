@@ -107,7 +107,10 @@ class LevelScene(Scene):
         # Initial stats
         self.total_cheese = 0
         self.scale_cheese = 0
-        self.cheeses_to_spawn_hole = len(self.cheeses) # All cheeses on level
+        
+        # Hole appearance condition: count all visible cheeses AND cheeses inside crates
+        # (Each crate currently spawns exactly 1 cheese when broken)
+        self.cheeses_to_spawn_hole = len(self.cheeses) + len(self.crates)
 
     def handle_events(self, events):
         self.player.handle_input()
@@ -176,6 +179,11 @@ class LevelScene(Scene):
         enemies_hit = pygame.sprite.spritecollide(self.player, self.enemies, False)
         for enemy in enemies_hit:
             self.player.take_damage()
+        
+        # 3.1 Fall damage (Out of bounds)
+        # If player falls significantly below the level height or 1200px
+        if self.player.pos.y > self.level_data["height"] + 200 or self.player.pos.y > 1200:
+             self.player.health = 0
         
         # 5. Death check
         if self.player.health <= 0:

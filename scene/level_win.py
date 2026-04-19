@@ -26,6 +26,8 @@ class LevelWinScene(Scene):
     def enter(self, **kwargs):
         self.cheese_count = kwargs.get("cheese_count", 0)
         self.current_level_id = kwargs.get("level_id", 1)
+        # Stop background music
+        mixer.stop_music()
         from constant import SFX_WIN
         mixer.play_sfx(resource_manager.get_sound(SFX_WIN))
 

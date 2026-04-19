@@ -62,25 +62,26 @@ class Decoy(pygame.sprite.Sprite):
                     elif self.vel.x < 0:
                         self.rect.left = platform.rect.right
                     
-                    self.bounce_count += 1
                     if self.bounce_count >= 1:
                         self.vel.x = 0
                         self.on_ground = True
                     else:
                         self.vel.x *= -self.bounce
                     
+                    self.bounce_count += 1
                     self.pos.x = float(self.rect.centerx)
                 else:
                     if self.vel.y > 0: # Falling
                         self.rect.bottom = platform.rect.top
                         
-                        self.bounce_count += 1
                         if self.bounce_count >= 1:
                             self.vel.y = 0
                             self.vel.x = 0
                             self.on_ground = True
                         else:
                             self.vel.y *= -self.bounce
+                        
+                        self.bounce_count += 1
                     elif self.vel.y < 0: # Hit ceiling
                         self.rect.top = platform.rect.bottom
                         self.vel.y *= -self.bounce
