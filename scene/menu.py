@@ -1,8 +1,10 @@
 import pygame
 from scene.base import Scene
 from ui.button import Button
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, BG_MENU
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, BG_MENU, BG_KITCHEN
 from core.resource import resource_manager
+from core.mixer import mixer
+import os
 
 class MenuScene(Scene):
     def __init__(self, game):
@@ -21,6 +23,12 @@ class MenuScene(Scene):
             Button(center_x, 400, "Settings", self.open_settings),
             Button(center_x, 500, "Exit", self.exit_game)
         ]
+
+    def enter(self, **kwargs):
+        # Play menu music
+        from constant import MUSIC_DIR
+        menu_music = os.path.join(MUSIC_DIR, "menu.mp3")
+        mixer.play_music(menu_music)
 
     def start_game(self):
         self.game.state_machine.set_state("LEVEL", level_id=1)

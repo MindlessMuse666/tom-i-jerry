@@ -138,6 +138,12 @@ class LevelScene(Scene):
         enemies_hit = pygame.sprite.spritecollide(self.player, self.enemies, False)
         for enemy in enemies_hit:
             self.player.take_damage()
+        
+        # 5. Death check
+        if self.player.health <= 0:
+            # For now, restart the level
+            # In a real game, this would go to a Game Over screen
+            self.enter(level_id=self.level_data.get("id", 1))
 
         # 4. Crate/Enemy interaction
         for crate in self.crates:

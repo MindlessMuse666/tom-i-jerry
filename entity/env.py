@@ -70,6 +70,7 @@ class Trap(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.sprite_sheet = resource_manager.get_image(TRAP_PATH)
+        self.scale_factor = 3 # Increased scale
         self.frames = self.load_frames()
         self.image = self.frames[0]
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -82,7 +83,7 @@ class Trap(pygame.sprite.Sprite):
         for i in range(2):
             surf = pygame.Surface((32, 32), pygame.SRCALPHA)
             surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
-            frames.append(pygame.transform.scale(surf, (64, 64)))
+            frames.append(pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor)))
         return frames
 
     def activate(self):
@@ -103,6 +104,7 @@ class Crate(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.sprite_sheet = resource_manager.get_image(CRATE_PATH)
+        self.scale_factor = 2
         self.frames = self.load_frames()
         self.image = self.frames[0]
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -113,17 +115,26 @@ class Crate(pygame.sprite.Sprite):
         self.friction = 500
         self.is_broken = False
         self.activated_by_player = False
+        self.broken_timer = 0
+        self.broken_duration = 1.0 # Duration before chips disappear
 
     def load_frames(self):
         frames = []
         for i in range(2):
             surf = pygame.Surface((32, 32), pygame.SRCALPHA)
             surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
-            frames.append(pygame.transform.scale(surf, (64, 64)))
+            frames.append(pygame.transform.scale(surf, (32 * self.scale_factor * 2, 32 * self.scale_factor * 2)))
         return frames
 
     def update(self, dt, platforms):
         if self.is_broken:
+            self.broken_timer += dt
+            if self.broken_timer >= self.broken_duration:
+                self.kill()
+            else:
+                # Fade out effect
+                alpha = max(0, 255 * (1 - self.broken_timer / self.broken_duration))
+                self.image.set_alpha(int(alpha))
             return
 
         # Gravity

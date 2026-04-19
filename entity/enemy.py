@@ -16,19 +16,19 @@ class Enemy(pygame.sprite.Sprite):
         # Load config
         config_path = os.path.join("config", "enemy.toml")
         if not os.path.exists(config_path):
-            # Create default config if missing
             self.config = {
                 "speed": 150.0,
                 "chase_radius": 400.0,
                 "health": 1,
-                "damage": 1
+                "damage": 1,
+                "patrol_distance": 200.0
             }
         else:
             with open(config_path, "rb") as f:
                 self.config = tomllib.load(f)
                 
         self.sprite_sheet = resource_manager.get_image(image_path)
-        self.scale_factor = 2
+        self.scale_factor = 3 # Increased scale
         self.frames = self.load_frames()
         
         self.state = "IDLE"
@@ -45,10 +45,20 @@ class Enemy(pygame.sprite.Sprite):
         
         self.on_ground = False
         self.health = self.config["health"]
+        
+        # Patrol logic
+        self.start_x = x
+        self.patrol_dist = self.config.get("patrol_distance", 200.0)
+        self.patrol_dir = 1 # 1 for right, -1 for left
+        
+        # AI state
+        self.target_player = None
+        self.lost_timer = 0
+        self.lost_pause_duration = 2.0
+        self.is_paused = False
 
     def load_frames(self):
         frames = {"IDLE": [], "WALK": []}
-        # 64x32 (cell 32x32): 1st cell - idle, 2nd cell - walk
         for i, state in enumerate(["IDLE", "WALK"]):
             surf = pygame.Surface((32, 32), pygame.SRCALPHA)
             surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
@@ -60,19 +70,49 @@ class Enemy(pygame.sprite.Sprite):
         self.vel.y += self.gravity * dt
         
         # AI Logic
-        dist = (pygame.Vector2(player.rect.center) - pygame.Vector2(self.rect.center)).length()
+        dist_vec = pygame.Vector2(player.rect.center) - pygame.Vector2(self.rect.center)
+        dist = dist_vec.length()
         
         if dist < self.config["chase_radius"]:
+            # Chasing player
             self.state = "WALK"
-            if player.rect.centerx > self.rect.centerx:
-                self.vel.x = self.config["speed"]
-                self.facing_right = True
-            else:
-                self.vel.x = -self.config["speed"]
-                self.facing_right = False
+            self.is_paused = False
+            self.lost_timer = 0
+            
+            # Fix flip-flop behavior: only change direction if player is significantly away
+            if abs(player.rect.centerx - self.rect.centerx) > 5:
+                if player.rect.centerx > self.rect.centerx:
+                    self.vel.x = self.config["speed"]
+                    self.facing_right = True
+                else:
+                    self.vel.x = -self.config["speed"]
+                    self.facing_right = False
         else:
-            self.state = "IDLE"
-            self.vel.x = 0
+            # Player lost or not in range
+            if self.state == "WALK" and not self.is_paused and dist >= self.config["chase_radius"]:
+                # Just lost player
+                self.is_paused = True
+                self.lost_timer = 0
+                self.state = "IDLE"
+                self.vel.x = 0
+            
+            if self.is_paused:
+                self.lost_timer += dt
+                if self.lost_timer >= self.lost_pause_duration:
+                    self.is_paused = False
+                    self.state = "WALK"
+            else:
+                # Patrol logic
+                self.state = "WALK"
+                self.vel.x = self.config["speed"] * self.patrol_dir
+                
+                # Check patrol boundaries
+                if self.patrol_dir == 1 and self.pos.x >= self.start_x + self.patrol_dist:
+                    self.patrol_dir = -1
+                    self.facing_right = False
+                elif self.patrol_dir == -1 and self.pos.x <= self.start_x:
+                    self.patrol_dir = 1
+                    self.facing_right = True
 
         # Movement
         self.pos.x += self.vel.x * dt
