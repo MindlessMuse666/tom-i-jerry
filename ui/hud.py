@@ -11,11 +11,11 @@ class HUD:
         self.heart_empty = resource_manager.get_image(HEART_EMPTY)
         self.cheese_full = resource_manager.get_image(CHEESE_HUD)
         self.cheese_empty = resource_manager.get_image(CHEESE_HUD_EMPTY)
-        self.font = resource_manager.get_font(DEFAULT_FONT, 36)
+        self.font = resource_manager.get_font(DEFAULT_FONT, 28) # Reduced from 36 to 28
 
     def draw(self, screen, player_health, max_health, cheese_count, scale_cheese):
         # 1. Cheese counter (top left)
-        cheese_text = self.font.render(f"Cheese: {cheese_count}", True, (255, 255, 255))
+        cheese_text = self.font.render(f"Сыр: {cheese_count}", True, (255, 255, 255))
         screen.blit(cheese_text, (20, 20))
         
         # 2. Health (top right)

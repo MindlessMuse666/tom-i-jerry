@@ -87,4 +87,4 @@ SFX_UI_CLICK = os.path.join(SFX_DIR, "ui_click.mp3")
 SFX_WIN = os.path.join(SFX_DIR, "win.mp3")
 
 # Fonts
-DEFAULT_FONT = os.path.join(FONT_DIR, "VT323.ttf")
+DEFAULT_FONT = os.path.join(FONT_DIR, "public-pixel.ttf")

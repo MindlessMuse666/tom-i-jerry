@@ -10,8 +10,8 @@ class GameOverScene(Scene):
     def __init__(self, game):
         super().__init__(game)
         self.cheese_count = 0
-        self.font_large = resource_manager.get_font(DEFAULT_FONT, 72)
-        self.font_medium = resource_manager.get_font(DEFAULT_FONT, 48)
+        self.font_large = resource_manager.get_font(DEFAULT_FONT, 56) # Reduced from 72 to 56
+        self.font_medium = resource_manager.get_font(DEFAULT_FONT, 32) # Reduced from 48 to 32
         
         # Background blur/darken will be handled in draw
         self.overlay = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT), pygame.SRCALPHA)
@@ -19,8 +19,8 @@ class GameOverScene(Scene):
         
         center_x = LOGICAL_WIDTH // 2
         self.buttons = [
-            Button(center_x, 450, "Restart", self.restart_level),
-            Button(center_x, 550, "Main Menu", self.go_to_menu)
+            Button(center_x, 450, "Заново", self.restart_level),
+            Button(center_x, 550, "В меню", self.go_to_menu)
         ]
 
     def enter(self, **kwargs):
@@ -55,12 +55,12 @@ class GameOverScene(Scene):
         screen.blit(self.overlay, (0, 0))
         
         # Game Over Text
-        title_surf = self.font_large.render("GAME OVER", True, (255, 50, 50))
+        title_surf = self.font_large.render("ИГРА ОКОНЧЕНА", True, (255, 50, 50))
         title_rect = title_surf.get_rect(center=(LOGICAL_WIDTH // 2, 200))
         screen.blit(title_surf, title_rect)
         
         # Score Text
-        score_surf = self.font_medium.render(f"Cheese Collected: {self.cheese_count}", True, (255, 255, 255))
+        score_surf = self.font_medium.render(f"Собрано сыра: {self.cheese_count}", True, (255, 255, 255))
         score_rect = score_surf.get_rect(center=(LOGICAL_WIDTH // 2, 300))
         screen.blit(score_surf, score_rect)
         

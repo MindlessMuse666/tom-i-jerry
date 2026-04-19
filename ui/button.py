@@ -3,7 +3,7 @@ from core.resource import resource_manager
 from constant import BTN_NORMAL, BTN_HOVER, DEFAULT_FONT
 
 class Button:
-    def __init__(self, x, y, text, callback, font_size=32):
+    def __init__(self, x, y, text, callback, font_size=24): # Reduced default font size from 32 to 24
         self.normal_img = resource_manager.get_image(BTN_NORMAL)
         self.hover_img = resource_manager.get_image(BTN_HOVER)
         self.rect = self.normal_img.get_rect(center=(x, y))
@@ -15,6 +15,8 @@ class Button:
         # Render text
         self.text_surf = self.font.render(self.text, True, (255, 255, 255))
         self.text_rect = self.text_surf.get_rect(center=self.rect.center)
+        # Shift text slightly up if it's too low in the button
+        self.text_rect.centery -= 2 
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()

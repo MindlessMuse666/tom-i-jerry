@@ -19,9 +19,9 @@ class MenuScene(Scene):
         
         center_x = LOGICAL_WIDTH // 2
         self.buttons = [
-            Button(center_x, 300, "Start Game", self.start_game),
-            Button(center_x, 400, "Settings", self.open_settings),
-            Button(center_x, 500, "Exit", self.exit_game)
+            Button(center_x, 300, "Начать", self.start_game),
+            Button(center_x, 400, "Опции", self.open_settings),
+            Button(center_x, 500, "Выход", self.exit_game)
         ]
 
     def enter(self, **kwargs):

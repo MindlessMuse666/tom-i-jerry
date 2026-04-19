@@ -10,7 +10,7 @@ class SettingsScene(Scene):
     def __init__(self, game):
         super().__init__(game)
         self.bg = resource_manager.get_image(BG_MENU)
-        self.font = resource_manager.get_font(DEFAULT_FONT, 48)
+        self.font = resource_manager.get_font(DEFAULT_FONT, 32) # Reduced from 48 to 32
         
         center_x = LOGICAL_WIDTH // 2
         
@@ -18,11 +18,11 @@ class SettingsScene(Scene):
         self.music_slider = Slider(center_x - 100, 300, 200, settings.music_volume, self.set_music_volume)
         self.sfx_slider = Slider(center_x - 100, 400, 200, settings.sfx_volume, self.set_sfx_volume)
         
-        self.back_button = Button(center_x, 550, "Back", self.go_back)
+        self.back_button = Button(center_x, 550, "Назад", self.go_back)
         
         # Labels
-        self.music_label = self.font.render("Music Volume", True, (255, 255, 255))
-        self.sfx_label = self.font.render("SFX Volume", True, (255, 255, 255))
+        self.music_label = self.font.render("Громкость музыки", True, (255, 255, 255))
+        self.sfx_label = self.font.render("Громкость эффектов", True, (255, 255, 255))
 
     def set_music_volume(self, value):
         settings.music_volume = value
