@@ -7,10 +7,16 @@ class Platform(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.Surface((width, height), pygame.SRCALPHA)
         tile_img = resource_manager.get_image(image_path)
-        # Tile the image (32x32 tiles)
-        for ty in range(0, height, 32):
-            for tx in range(0, width, 32):
-                self.image.blit(tile_img, (tx, ty))
+        
+        # Scaling tiles
+        self.tile_scale = 2 # Scale tiles 2x (64x64)
+        scaled_tile = pygame.transform.scale(tile_img, (32 * self.tile_scale, 32 * self.tile_scale))
+        tile_size = 32 * self.tile_scale
+        
+        # Tile the image
+        for ty in range(0, height, tile_size):
+            for tx in range(0, width, tile_size):
+                self.image.blit(scaled_tile, (tx, ty))
         self.rect = self.image.get_rect(topleft=(x, y))
 
 class MovingPlatform(Platform):
