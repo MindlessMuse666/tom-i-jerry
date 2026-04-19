@@ -11,7 +11,7 @@ def main():
     clock = pygame.time.Clock()
 
     while game.running:
-        dt = clock.tick(FPS) / 1000.0  # Delta time in seconds
+        dt = clock.tick(FPS) / 1000.0
         game.handle_events()
         game.update(dt)
         game.draw()

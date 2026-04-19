@@ -1,5 +1,8 @@
 import pygame
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 import os
 from constant import PLAYER_PATH
 from core.resource import resource_manager
@@ -136,11 +139,15 @@ class Player(pygame.sprite.Sprite):
         if direction == 'horizontal':
             for platform in platforms:
                 # Skip horizontal collision with the platform we are standing on 
-                # to prevent being "ejected" when platform moves up
                 if platform == self.current_platform:
                     continue
                     
                 if self.rect.colliderect(platform.rect):
+                    # Handle Crate pushing
+                    if hasattr(platform, 'vel') and not hasattr(platform, 'path'): # It's a crate
+                        platform.vel.x = self.vel.x
+                        platform.activated_by_player = True
+                    
                     if self.vel.x > 0:
                         self.rect.right = platform.rect.left
                         self.pos.x = self.rect.x

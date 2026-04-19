@@ -3,7 +3,8 @@ import json
 import os
 from scene.base import Scene
 from entity.player import Player
-from entity.env import Platform, MovingPlatform
+from entity.env import Platform, MovingPlatform, Cheese, Trap, Crate
+from entity.enemy import Tom, Broom
 from core.camera import Camera
 from core.resource import resource_manager
 from core.mixer import mixer
@@ -17,7 +18,10 @@ class LevelScene(Scene):
         self.player = None
         self.platforms = pygame.sprite.Group()
         self.moving_platforms = pygame.sprite.Group()
-        self.cheeses = pygame.sprite.Group() # To be implemented
+        self.cheeses = pygame.sprite.Group()
+        self.traps = pygame.sprite.Group()
+        self.crates = pygame.sprite.Group()
+        self.enemies = pygame.sprite.Group()
         self.hud = HUD()
         
         # Game stats for HUD
@@ -65,10 +69,32 @@ class LevelScene(Scene):
         for mp in self.level_data["moving_platforms"]:
             self.moving_platforms.add(MovingPlatform(mp["x"], mp["y"], mp["width"], mp["height"], mp["path"], mp["speed"]))
             
-        # Initial cheese
+        # Load Cheeses
+        self.cheeses.empty()
+        for c in self.level_data["cheeses"]:
+            self.cheeses.add(Cheese(c[0], c[1]))
+            
+        # Load Traps
+        self.traps.empty()
+        for t in self.level_data["traps"]:
+            self.traps.add(Trap(t[0], t[1]))
+            
+        # Load Crates
+        self.crates.empty()
+        for cr in self.level_data["crates"]:
+            self.crates.add(Crate(cr[0], cr[1]))
+            
+        # Load Enemies
+        self.enemies.empty()
+        for en in self.level_data["enemies"]:
+            if en["type"] == "tom":
+                self.enemies.add(Tom(en["x"], en["y"]))
+            elif en["type"] == "broom":
+                self.enemies.add(Broom(en["x"], en["y"]))
+            
+        # Initial stats
         self.total_cheese = 0
         self.scale_cheese = 0
-        # Cheese implementation will come in next stage, but we can add placeholders
 
     def handle_events(self, events):
         for event in events:
@@ -80,27 +106,64 @@ class LevelScene(Scene):
 
     def update(self, dt):
         self.moving_platforms.update(dt)
+        self.traps.update(dt)
         
-        # Combine all solid platforms for player collision
-        all_platforms = list(self.platforms) + list(self.moving_platforms)
-        self.player.update(dt, all_platforms)
+        # Solid platforms for player and other entities
+        solids = list(self.platforms) + list(self.moving_platforms) + list(self.crates)
+        
+        self.player.update(dt, solids)
+        self.enemies.update(dt, self.player, solids)
+        self.crates.update(dt, solids)
+        
+        # Player collisions
+        # 1. Cheese
+        collected = pygame.sprite.spritecollide(self.player, self.cheeses, True)
+        for c in collected:
+            c.collect()
+            self.total_cheese += 1
+            self.scale_cheese += 1
+            if self.scale_cheese >= 5:
+                self.scale_cheese = 0
+                if self.player.health < self.player.config["max_health"]:
+                    self.player.health += 1
+
+        # 2. Traps
+        traps_hit = pygame.sprite.spritecollide(self.player, self.traps, False)
+        for trap in traps_hit:
+            if trap.active:
+                if self.player.take_damage():
+                    trap.activate()
+
+        # 3. Enemies
+        enemies_hit = pygame.sprite.spritecollide(self.player, self.enemies, False)
+        for enemy in enemies_hit:
+            self.player.take_damage()
+
+        # 4. Crate/Enemy interaction
+        for crate in self.crates:
+            if crate.is_broken: continue
+            enemies_hit_crate = pygame.sprite.spritecollide(crate, self.enemies, False)
+            for enemy in enemies_hit_crate:
+                if crate.activated_by_player:
+                    if crate.break_crate():
+                        enemy.kill()
+                        # Spawn cheese from crate
+                        self.cheeses.add(Cheese(crate.rect.x, crate.rect.y))
         
         self.camera.update(self.player.rect)
 
     def draw(self, screen):
         # Draw parallax background
-        # 0.5 parallax factor
         bg_offset = -(self.camera.offset.x * 0.5) % self.bg_width
         screen.blit(self.background, (bg_offset - self.bg_width, 0))
         screen.blit(self.background, (bg_offset, 0))
         screen.blit(self.background, (bg_offset + self.bg_width, 0))
         
         # Draw entities with camera offset
-        for platform in self.platforms:
-            screen.blit(platform.image, platform.rect.topleft - self.camera.offset)
-            
-        for mp in self.moving_platforms:
-            screen.blit(mp.image, mp.rect.topleft - self.camera.offset)
+        groups = [self.platforms, self.moving_platforms, self.cheeses, self.traps, self.crates, self.enemies]
+        for group in groups:
+            for sprite in group:
+                screen.blit(sprite.image, sprite.rect.topleft - self.camera.offset)
             
         self.player.draw(screen, self.camera.offset)
         

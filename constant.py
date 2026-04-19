@@ -66,5 +66,14 @@ MOVING_PLATFORM_PATH = os.path.join(ENV_DIR, "moving_platform.png")
 MUSIC_DIR = os.path.join(AUDIO_DIR, "music")
 SFX_DIR = os.path.join(AUDIO_DIR, "sfx")
 
+# SFX paths
+SFX_JUMP = os.path.join(SFX_DIR, "jump.mp3")
+SFX_CHEESE = os.path.join(SFX_DIR, "cheese.mp3")
+SFX_HURT = os.path.join(SFX_DIR, "hurt.mp3")
+SFX_CRATE_BREAK = os.path.join(SFX_DIR, "crate_break.mp3")
+SFX_TRAP_SNAP = os.path.join(SFX_DIR, "trap_snap.mp3")
+SFX_UI_CLICK = os.path.join(SFX_DIR, "ui_click.mp3")
+SFX_WIN = os.path.join(SFX_DIR, "win.mp3")
+
 # Fonts
 DEFAULT_FONT = os.path.join(FONT_DIR, "VT323.ttf")
