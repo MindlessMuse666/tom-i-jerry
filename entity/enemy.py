@@ -79,19 +79,20 @@ class Enemy(pygame.sprite.Sprite):
             self.is_paused = False
             self.lost_timer = 0
             
-            # Fix flip-flop behavior: only change direction if player is significantly away
             # Using 10px buffer to prevent rapid switching when overlapping
             if abs(player.rect.centerx - self.rect.centerx) > 10:
                 if player.rect.centerx > self.rect.centerx:
                     self.vel.x = self.config["speed"]
                     self.facing_right = True
+                    self.patrol_dir = 1
                 else:
                     self.vel.x = -self.config["speed"]
                     self.facing_right = False
+                    self.patrol_dir = -1
         else:
             # Player lost or not in range
-            if not self.is_paused and dist >= self.config["chase_radius"] and self.vel.x != 0:
-                # Just lost player or start in idle
+            if not self.is_paused and self.state == "WALK" and dist >= self.config["chase_radius"]:
+                # Just lost player
                 self.is_paused = True
                 self.lost_timer = 0
                 self.state = "IDLE"
@@ -101,7 +102,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.lost_timer += dt
                 if self.lost_timer >= self.lost_pause_duration:
                     self.is_paused = False
-                    # Decide initial patrol direction based on facing
+                    # Use current facing to decide patrol direction
                     self.patrol_dir = 1 if self.facing_right else -1
             else:
                 # Patrol logic
@@ -112,17 +113,21 @@ class Enemy(pygame.sprite.Sprite):
                 # Check patrol boundaries
                 if self.patrol_dir == 1 and self.pos.x >= self.start_x + self.patrol_dist:
                     self.patrol_dir = -1
+                    self.facing_right = False
                 elif self.patrol_dir == -1 and self.pos.x <= self.start_x:
                     self.patrol_dir = 1
+                    self.facing_right = True
 
-        # Movement
+        # Movement - Horizontal
         self.pos.x += self.vel.x * dt
         self.rect.x = round(self.pos.x)
         if self.check_collisions(platforms, 'horizontal'):
             # If hit a wall during patrol, reverse direction
             if not self.is_paused and dist >= self.config["chase_radius"]:
                 self.patrol_dir *= -1
+                self.facing_right = (self.patrol_dir == 1)
         
+        # Movement - Vertical
         self.pos.y += self.vel.y * dt
         self.rect.y = round(self.pos.y)
         self.check_collisions(platforms, 'vertical')

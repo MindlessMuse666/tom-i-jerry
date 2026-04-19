@@ -182,7 +182,8 @@ class Crate(pygame.sprite.Sprite):
         if not self.is_broken:
             self.is_broken = True
             self.image = self.frames[1]
+            # Remove from all solid groups immediately to disable collision
+            self.kill() # This removes it from ALL groups
             mixer.play_sfx(resource_manager.get_sound(SFX_CRATE_BREAK))
-            # Spawn cheese logic should be in scene
             return True
         return False

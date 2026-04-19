@@ -143,19 +143,22 @@ class LevelScene(Scene):
         
         # 5. Death check
         if self.player.health <= 0:
-            # For now, restart the level
-            self.enter(level_id=self.current_level_id)
+            self.game.state_machine.set_state("GAME_OVER", cheese_count=self.total_cheese)
 
         # 4. Crate/Enemy interaction
-        for crate in self.crates:
+        for crate in list(self.crates): # Use list to avoid modification during iteration
             if crate.is_broken: continue
             enemies_hit_crate = pygame.sprite.spritecollide(crate, self.enemies, False)
             for enemy in enemies_hit_crate:
                 if crate.activated_by_player:
+                    # Capture crate pos before breaking
+                    cx, cy = crate.rect.x, crate.rect.y
                     if crate.break_crate():
                         enemy.kill()
                         # Spawn cheese from crate
-                        self.cheeses.add(Cheese(crate.rect.x, crate.rect.y))
+                        self.cheeses.add(Cheese(cx, cy))
+                        # Add broken crate back to a decorative group if needed
+                        # but for now we just remove it for collision purposes
         
         self.camera.update(self.player.rect)
 

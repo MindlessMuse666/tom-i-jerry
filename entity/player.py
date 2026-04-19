@@ -219,9 +219,12 @@ class Player(pygame.sprite.Sprite):
             self.health -= amount
             self.is_invulnerable = True
             self.invulnerability_timer = self.config["invulnerability_time"]
+            from core.mixer import mixer
+            from core.resource import resource_manager
+            from constant import SFX_HURT
+            mixer.play_sfx(resource_manager.get_sound(SFX_HURT))
             if self.health <= 0:
                 self.health = 0
-                # Handle death?
             return True
         return False
 
