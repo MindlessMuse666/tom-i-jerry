@@ -7,7 +7,7 @@ import os
 import pygame
 from core.resource import resource_manager
 from core.mixer import mixer
-from constant import TOM_PATH, BROOM_PATH, BOSS_PATH, SFX_HURT
+from constant import TOM_PATH, BROOM_PATH, BOSS_PATH, SFX_HURT, SFX_TOM_DEATH, SFX_BOSS_DEATH
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y, image_path, frame_w=32, frame_h=32):
@@ -248,7 +248,7 @@ class BossTom(pygame.sprite.Sprite):
         self.facing_right = True
         
         # Timings
-        self.wait_duration = 1.5
+        self.wait_duration = 0.5
         self.phase_duration = 6.0
         self.rocket_cooldown = 1.0
         self.crate_cooldown = 0.8

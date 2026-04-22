@@ -96,6 +96,12 @@ SFX_UI_CLICK = os.path.join(SFX_DIR, "ui_click.mp3")
 SFX_WIN = os.path.join(SFX_DIR, "win.mp3")
 SFX_ROCKET_LAUNCH = os.path.join(SFX_DIR, "rocket_launch.mp3")
 SFX_EXPLOSION = os.path.join(SFX_DIR, "explosion.mp3")
+SFX_TOM_DEATH = os.path.join(SFX_DIR, "tom_death.mp3")
+SFX_BOSS_DEATH = os.path.join(SFX_DIR, "boss_death.mp3")
+SFX_LEVEL_START = os.path.join(SFX_DIR, "level_start.mp3")
+SFX_DECOY_THROW = os.path.join(SFX_DIR, "decoy_throw.mp3")
+SFX_DECOY_LAND = os.path.join(SFX_DIR, "decoy_land.mp3")
+SFX_DECOY_MAIN = os.path.join(SFX_DIR, "decoy_main.mp3")
 
 # Fonts
 DEFAULT_FONT = os.path.join(FONT_DIR, "public-pixel.ttf")

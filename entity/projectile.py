@@ -1,7 +1,7 @@
 import pygame
 import os
 from core.resource import resource_manager
-from constant import DECOY_PATH, ROCKET_PATH, SFX_ROCKET_LAUNCH, SFX_EXPLOSION, SFX_CRATE_BREAK
+from constant import DECOY_PATH, ROCKET_PATH, SFX_ROCKET_LAUNCH, SFX_EXPLOSION, SFX_CRATE_BREAK, SFX_DECOY_LAND, SFX_DECOY_MAIN
 from core.mixer import mixer
 
 class Decoy(pygame.sprite.Sprite):
@@ -31,6 +31,7 @@ class Decoy(pygame.sprite.Sprite):
         self.on_ground = False
         self.bounce_count = 0
         self.life_timer = None # Will be set to 3.0 after first bounce/landing
+        self.main_sound_channel = None
 
     def load_frames(self):
         frames = []
@@ -70,9 +71,13 @@ class Decoy(pygame.sprite.Sprite):
         if self.on_ground:
             if self.life_timer is None:
                 self.life_timer = 3.0
+                # Play main working sound loop
+                self.main_sound_channel = mixer.play_sfx(resource_manager.get_sound(SFX_DECOY_MAIN), loops=-1)
             
             self.life_timer -= dt
             if self.life_timer <= 0:
+                if self.main_sound_channel:
+                    self.main_sound_channel.stop()
                 self.kill()
 
     def check_collisions(self, platforms, direction):
@@ -92,6 +97,8 @@ class Decoy(pygame.sprite.Sprite):
                     
                     self.bounce_count += 1
                     self.pos.x = float(self.rect.centerx)
+                    # Play land/bounce sound
+                    mixer.play_sfx(resource_manager.get_sound(SFX_DECOY_LAND))
                 else:
                     if self.vel.y > 0: # Falling
                         self.rect.bottom = platform.rect.top
@@ -104,6 +111,8 @@ class Decoy(pygame.sprite.Sprite):
                             self.vel.y *= -self.bounce
                         
                         self.bounce_count += 1
+                        # Play land/bounce sound
+                        mixer.play_sfx(resource_manager.get_sound(SFX_DECOY_LAND))
                     elif self.vel.y < 0: # Hit ceiling
                         self.rect.top = platform.rect.bottom
                         self.vel.y *= -self.bounce
@@ -116,12 +125,19 @@ class Rocket(pygame.sprite.Sprite):
     """
     def __init__(self, x, y, target_pos):
         super().__init__()
+        import random
         img = resource_manager.get_image(ROCKET_PATH)
         # New scale for rocket 16x28 (logical), multiplied by game scale 3.0
         self.image = pygame.transform.scale(img, (16 * 3, 28 * 3))
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.Vector2(x, y)
-        self.speed = 500 # Faster speed
+        
+        # Base speed increased and randomized
+        base_speed = 650 
+        self.speed = base_speed + random.randint(-50, 50)
+        
+        # Life timer added (longer life)
+        self.life_timer = 6.0 
         
         # Calculate direction to the target position provided at launch
         direction = (pygame.Vector2(target_pos) - self.pos).normalize()
@@ -137,11 +153,16 @@ class Rocket(pygame.sprite.Sprite):
         mixer.play_sfx(resource_manager.get_sound(SFX_ROCKET_LAUNCH))
 
     def update(self, dt):
+        self.life_timer -= dt
+        if self.life_timer <= 0:
+            self.kill()
+            return
+
         self.pos += self.vel * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
         
-        # Out of bounds - adjusted to typical screen limits with buffer
-        if self.pos.x < -100 or self.pos.x > 1380 or self.pos.y < -100 or self.pos.y > 820:
+        # Out of bounds - expanded limits
+        if self.pos.x < -500 or self.pos.x > 5500 or self.pos.y < -500 or self.pos.y > 1500:
             self.kill()
 
     def explode(self):

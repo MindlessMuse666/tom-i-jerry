@@ -24,6 +24,7 @@ class Game:
         from scene.game_over import GameOverScene
         from scene.level_win import LevelWinScene
         from scene.pause import PauseScene
+        from scene.credits import CreditsScene
         
         self.state_machine.add_state("MENU", MenuScene(self))
         self.state_machine.add_state("SETTINGS", SettingsScene(self))
@@ -31,7 +32,15 @@ class Game:
         self.state_machine.add_state("GAME_OVER", GameOverScene(self))
         self.state_machine.add_state("LEVEL_WIN", LevelWinScene(self))
         self.state_machine.add_state("PAUSE", PauseScene(self))
+        self.state_machine.add_state("CREDITS", CreditsScene(self))
         self.state_machine.set_state("MENU")
+        
+        # Set window icon
+        try:
+            icon = pygame.image.load("asset/other/icon.ico")
+            pygame.display.set_icon(icon)
+        except Exception as e:
+            print(f"Could not load icon: {e}")
         
         # Cursor handling
         pygame.mouse.set_visible(False)

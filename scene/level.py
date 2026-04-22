@@ -5,7 +5,7 @@ from scene.base import Scene
 from entity.player import Player
 from entity.env import Platform, MovingPlatform, Cheese, Trap, Crate, Hole
 from entity.enemy import Tom, Broom, BossTom
-from constant import SFX_CHEESE, SFX_WIN
+from constant import SFX_BOSS_DEATH, SFX_CHEESE, SFX_LEVEL_START, SFX_TOM_DEATH, SFX_WIN
 from entity.projectile import Decoy, Rocket
 from core.camera import Camera
 from core.resource import resource_manager
@@ -53,6 +53,8 @@ class LevelScene(Scene):
             
             self.load_level(level_id)
             mixer.play_music(self.level_data["music"])
+            # Play level start sound
+            mixer.play_sfx(resource_manager.get_sound(SFX_LEVEL_START))
 
     def load_level(self, level_id):
         path = os.path.join("level", f"level{level_id}.json")
@@ -249,6 +251,9 @@ class LevelScene(Scene):
                 condition_met = self.total_cheese >= self.cheeses_to_spawn_hole
                 
             if condition_met and self.hole:
+                if self.current_level_id == 3:
+                     # Play boss death sound
+                     mixer.play_sfx(resource_manager.get_sound(SFX_BOSS_DEATH))
                 self.hole.activate()
 
         # 1.1 Hole collision
@@ -331,6 +336,7 @@ class LevelScene(Scene):
                 for enemy in enemies_hit_crate:
                     cx, cy = crate.rect.x, crate.rect.y
                     if crate.break_crate():
+                        mixer.play_sfx(resource_manager.get_sound(SFX_TOM_DEATH))
                         enemy.kill()
                         self.cheeses.add(Cheese(cx, cy))
                 

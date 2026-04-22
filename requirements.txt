@@ -1,3 +1,5 @@
 pygame-ce
 tomli; python_version < '3.11'
 numpy
+opencv-python
+moviepy

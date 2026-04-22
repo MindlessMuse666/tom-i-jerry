@@ -4,8 +4,9 @@ try:
 except ImportError:
     import tomli as tomllib
 import os
-from constant import PLAYER_PATH
+from constant import PLAYER_PATH, SFX_DECOY_THROW
 from core.resource import resource_manager
+from core.mixer import mixer
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -178,6 +179,9 @@ class Player(pygame.sprite.Sprite):
             
             decoy = Decoy(start_x, start_y, vx, vy)
             decoys_group.add(decoy)
+            
+            # Play throw sound
+            mixer.play_sfx(resource_manager.get_sound(SFX_DECOY_THROW))
             
             self.decoy_cooldown = 0.5 # 0.5 seconds between throws
             return True

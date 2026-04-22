@@ -42,8 +42,11 @@ class LevelWinScene(Scene):
         next_path = os.path.join("level", f"level{next_id}.json")
         if os.path.exists(next_path):
             self.game.state_machine.set_state("LEVEL", level_id=next_id)
+        elif self.current_level_id == 3:
+            # Special credits sequence for the end of the game
+            self.game.state_machine.set_state("CREDITS")
         else:
-            # All levels finished!
+            # All levels finished (fallback)
             self.game.state_machine.set_state("MENU")
 
     def go_to_menu(self):
