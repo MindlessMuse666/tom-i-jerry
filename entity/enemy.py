@@ -344,8 +344,8 @@ class BossTom(pygame.sprite.Sprite):
         import random
         drop_x = player.rect.centerx + random.randint(-100, 100)
         drop_x = max(64, min(1216, drop_x))
-        crate = Crate(drop_x, -100)
+        # Boss crates: scale 3.0 (1.5x larger than normal 2.0), faster fall
+        crate = Crate(drop_x, -100, scale=3.0)
         crate.is_boss_crate = True
-        # Reduce boss crate gravity
-        crate.gravity = 600 # Half of normal gravity
+        crate.gravity = 800 # Slightly faster fall than 600
         crate_group.add(crate)

@@ -11,6 +11,7 @@ class SettingsScene(Scene):
         super().__init__(game)
         self.bg = resource_manager.get_image(BG_MENU)
         self.font = resource_manager.get_font(DEFAULT_FONT, 32) # Reduced from 48 to 32
+        self.previous_state = "MENU"
         
         center_x = LOGICAL_WIDTH // 2
         
@@ -19,6 +20,7 @@ class SettingsScene(Scene):
         self.sfx_slider = Slider(center_x - 100, 400, 200, settings.sfx_volume, self.set_sfx_volume)
         
         self.back_button = Button(center_x, 550, "Назад", self.go_back)
+        self.buttons = [self.back_button]
         
         # Labels
         self.music_label = self.font.render("Громкость музыки", True, (255, 255, 255))
@@ -35,12 +37,15 @@ class SettingsScene(Scene):
         settings.save()
 
     def go_back(self):
-        self.game.state_machine.set_state("MENU")
+        # We need to know where we came from (MENU or PAUSE)
+        self.game.state_machine.set_state(self.previous_state)
+        # Reset to default
+        self.previous_state = "MENU"
 
     def handle_events(self, events):
         self.music_slider.handle_events(events)
         self.sfx_slider.handle_events(events)
-        self.back_button.handle_events(events)
+        super().handle_events(events)
 
     def draw(self, screen):
         screen.blit(self.bg, (0, 0))

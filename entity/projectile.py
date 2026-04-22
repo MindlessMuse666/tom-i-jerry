@@ -121,14 +121,16 @@ class Rocket(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(img, (96, 96))
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.Vector2(x, y)
-        self.speed = 400
+        self.speed = 500 # Faster speed
         
         # Calculate direction to the target position provided at launch
         direction = (pygame.Vector2(target_pos) - self.pos).normalize()
         self.vel = direction * self.speed
         
-        # Initial rotation
-        angle = self.vel.angle_to(pygame.Vector2(1, 0))
+        # Initial rotation: head-first. 
+        # The original sprite is facing UP (negative Y), so we rotate based on velocity.
+        # UP is 90 degrees in Pygame Vector2, so we calculate angle relative to UP.
+        angle = self.vel.angle_to(pygame.Vector2(0, -1))
         self.image = pygame.transform.rotate(self.image, angle)
         
         # Play fire sound
@@ -138,8 +140,8 @@ class Rocket(pygame.sprite.Sprite):
         self.pos += self.vel * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
         
-        # Out of bounds
-        if self.pos.x < -200 or self.pos.x > 1500 or self.pos.y < -200 or self.pos.y > 1000:
+        # Out of bounds - adjusted to typical screen limits with buffer
+        if self.pos.x < -100 or self.pos.x > 1380 or self.pos.y < -100 or self.pos.y > 820:
             self.kill()
 
     def explode(self):

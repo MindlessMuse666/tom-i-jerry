@@ -45,10 +45,6 @@ class LevelWinScene(Scene):
     def go_to_menu(self):
         self.game.state_machine.set_state("MENU")
 
-    def handle_events(self, events):
-        for button in self.buttons:
-            button.handle_events(events)
-
     def update(self, dt):
         pass
 

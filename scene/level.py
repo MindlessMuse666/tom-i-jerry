@@ -43,10 +43,11 @@ class LevelScene(Scene):
         self.cheat_timer = 0
         self.god_mode = False
 
-    def enter(self, level_id=1):
+    def enter(self, level_id=1, resume=False):
         self.current_level_id = level_id
-        self.load_level(level_id)
-        mixer.play_music(self.level_data["music"])
+        if not resume:
+            self.load_level(level_id)
+            mixer.play_music(self.level_data["music"])
 
     def load_level(self, level_id):
         path = os.path.join("level", f"level{level_id}.json")
@@ -131,9 +132,9 @@ class LevelScene(Scene):
         
         # Hole appearance condition: count all visible cheeses AND cheeses inside crates
         # (Each crate currently spawns exactly 1 cheese when broken)
-        # For Level 3 (Boss), we might have a specific requirement (15 red cheeses)
+        # For Level 3 (Boss), we might have a specific requirement (25 red cheeses)
         if self.current_level_id == 3:
-            self.cheeses_to_spawn_hole = 15
+            self.cheeses_to_spawn_hole = 25
         else:
             self.cheeses_to_spawn_hole = len(self.cheeses) + len(self.crates)
 
@@ -148,13 +149,13 @@ class LevelScene(Scene):
                     self.cheat_timer = 2.0 # Reset timer on each keypress
                     self.check_cheats()
                 
-                if event.key == pygame.K_f or event.key == pygame.K_LCTRL:
+                if event.key == pygame.K_f:
                     # Get mouse pos and convert to world coords
                     mouse_pos = pygame.mouse.get_pos()
                     world_mouse = mouse_pos + self.camera.offset
                     self.player.throw_decoy(self.decoys, world_mouse)
                 elif event.key == pygame.K_ESCAPE:
-                    self.game.state_machine.set_state("MENU")
+                    self.game.state_machine.set_state("PAUSE", level_id=self.current_level_id)
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: # Left Click
@@ -292,6 +293,14 @@ class LevelScene(Scene):
         for crate in list(self.crates):
             if crate.is_broken: continue
             
+            # 4.1 Boss Crate: hit player while falling
+            if crate.is_boss_crate and not crate.has_dealt_fall_damage:
+                if crate.vel.y > 0 and self.player.rect.colliderect(crate.rect):
+                    if not self.god_mode:
+                        self.player.take_damage()
+                    crate.has_dealt_fall_damage = True
+                    crate.break_crate()
+            
             # A crate can only kill enemies if it's actually MOVING horizontally 
             # and was activated by the player
             if crate.activated_by_player and abs(crate.vel.x) > 10.0:
@@ -308,15 +317,18 @@ class LevelScene(Scene):
                     if crate.vel.y == 0: # It landed
                         cx, cy = crate.rect.centerx, crate.rect.top
                         if crate.break_crate():
-                            self.cheeses.add(Cheese(cx, cy, is_red=True))
+                            import random
+                            # 75% chance for red cheese
+                            if random.random() < 0.75:
+                                self.cheeses.add(Cheese(cx, cy, is_red=True))
                     
-                    # Check if hit player
+                    # Check if hit player (already handled above but for cheese spawn)
                     if self.player.rect.colliderect(crate.rect):
                          cx, cy = crate.rect.centerx, crate.rect.top
-                         if not self.god_mode:
-                             self.player.take_damage()
                          if crate.break_crate():
-                             self.cheeses.add(Cheese(cx, cy, is_red=True))
+                             import random
+                             if random.random() < 0.75:
+                                 self.cheeses.add(Cheese(cx, cy, is_red=True))
 
                 # Crate also breaks if it hits a decoy (distraction mechanic)
                 decoys_hit_crate = pygame.sprite.spritecollide(crate, self.decoys, True)
@@ -349,5 +361,9 @@ class LevelScene(Scene):
         self.player.draw(screen, self.camera.offset)
         
         # HUD
+        red_left = None
+        if self.current_level_id == 3:
+            red_left = max(0, self.cheeses_to_spawn_hole - self.red_cheese_collected)
+            
         self.hud.draw(screen, self.player.health, self.player.config["max_health"], 
-                      self.total_cheese, self.scale_cheese)
+                      self.total_cheese, self.scale_cheese, red_left)

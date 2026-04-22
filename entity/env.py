@@ -104,10 +104,10 @@ class Trap(pygame.sprite.Sprite):
                 self.image.set_alpha(int(self.alpha))
 
 class Crate(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, scale=2):
         super().__init__()
         self.sprite_sheet = resource_manager.get_image(CRATE_PATH)
-        self.scale_factor = 2 # Reverted to 2x scale (64x64)
+        self.scale_factor = scale 
         self.frames = self.load_frames()
         self.image = self.frames[0]
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -118,9 +118,10 @@ class Crate(pygame.sprite.Sprite):
         self.friction = 500
         self.is_broken = False
         self.activated_by_player = False
-        self.is_boss_crate = False # New property for boss phase
+        self.is_boss_crate = False 
+        self.has_dealt_fall_damage = False # New flag
         self.broken_timer = 0
-        self.broken_duration = 0.3 # Reduced to 0.3 seconds as requested
+        self.broken_duration = 0.3 
         
         # Pre-load sound
         self.break_sfx = resource_manager.get_sound(SFX_CRATE_BREAK)
@@ -129,9 +130,8 @@ class Crate(pygame.sprite.Sprite):
         frames = []
         for i in range(2):
             surf = pygame.Surface((32, 32), pygame.SRCALPHA)
-            # Frame 0: Crate, Frame 1: Chips
             surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
-            frames.append(pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor)))
+            frames.append(pygame.transform.scale(surf, (int(32 * self.scale_factor), int(32 * self.scale_factor))))
         return frames
 
     def update(self, dt, platforms):

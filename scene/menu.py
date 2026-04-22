@@ -39,10 +39,6 @@ class MenuScene(Scene):
     def exit_game(self):
         self.game.quit()
 
-    def handle_events(self, events):
-        for button in self.buttons:
-            button.handle_events(events)
-
     def draw(self, screen):
         # Draw tiled/scaled background
         screen.blit(self.bg, (0, 0))
@@ -51,3 +47,4 @@ class MenuScene(Scene):
             
         for button in self.buttons:
             button.draw(screen)
+
