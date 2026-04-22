@@ -55,6 +55,7 @@ CURSOR_DIR = os.path.join(ASSET_DIR, "cursor")
 CUR_BASIC = os.path.join(CURSOR_DIR, "cur_basic.png")
 CUR_SELECT = os.path.join(CURSOR_DIR, "cur_select.png")
 CUR_CANCEL = os.path.join(CURSOR_DIR, "cur_cancel.png")
+CUR_SLIDER = os.path.join(CURSOR_DIR, "cur_slider.png")
 
 BG_MENU = os.path.join(BG_DIR, "bg_menu.png")
 BG_GAME_OVER = os.path.join(BG_DIR, "bg_game_over.png")

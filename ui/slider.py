@@ -21,7 +21,7 @@ class Slider:
         mouse_pos = pygame.mouse.get_pos()
         
         if self.handle_rect.collidepoint(mouse_pos) and self.game:
-            self.game.current_cursor_type = "select"
+            self.game.current_cursor_type = "slider"
 
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:

@@ -87,10 +87,10 @@ class Trap(pygame.sprite.Sprite):
     def load_frames(self):
         frames = []
         for i in range(2):
-            surf = pygame.Surface((32, 32), pygame.SRCALPHA)
-            # Frame 0: Open, Frame 1: Closed
-            surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
-            frames.append(pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor)))
+            # Frame 1: Open (24x22), Frame 2: Closed (24x22)
+            surf = pygame.Surface((24, 22), pygame.SRCALPHA)
+            surf.blit(self.sprite_sheet, (0, 0), (i * 24, 0, 24, 22))
+            frames.append(pygame.transform.scale(surf, (int(24 * self.scale_factor), int(22 * self.scale_factor))))
         return frames
 
     def activate(self):

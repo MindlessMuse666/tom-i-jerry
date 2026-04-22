@@ -35,12 +35,13 @@ class Game:
         
         # Cursor handling
         pygame.mouse.set_visible(False)
-        from constant import CUR_BASIC, CUR_SELECT, CUR_CANCEL
+        from constant import CUR_BASIC, CUR_SELECT, CUR_CANCEL, CUR_SLIDER
         from core.resource import resource_manager
         self.cursors = {
             "basic": resource_manager.get_image(CUR_BASIC),
             "select": resource_manager.get_image(CUR_SELECT),
-            "cancel": resource_manager.get_image(CUR_CANCEL)
+            "cancel": resource_manager.get_image(CUR_CANCEL),
+            "slider": resource_manager.get_image(CUR_SLIDER)
         }
         self.current_cursor_type = "basic"
 

@@ -24,8 +24,8 @@ class SettingsScene(Scene):
         self.buttons = [self.back_button]
         
         # Labels
-        self.music_label = self.font.render("Громкость музыки", True, (255, 255, 255))
-        self.sfx_label = self.font.render("Громкость эффектов", True, (255, 255, 255))
+        self.music_label = self.font.render("Музыка", True, (255, 255, 255))
+        self.sfx_label = self.font.render("Эффекты", True, (255, 255, 255))
 
     def set_music_volume(self, value):
         settings.music_volume = value
