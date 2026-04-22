@@ -42,6 +42,7 @@ class LevelScene(Scene):
         self.cheat_buffer = ""
         self.cheat_timer = 0
         self.god_mode = False
+        self.debug_mode = False
         self.frame_count = 0
 
     def enter(self, level_id=1, resume=False):
@@ -187,6 +188,11 @@ class LevelScene(Scene):
             self.game.state_machine.set_state("LEVEL_WIN", 
                                             cheese_count=self.total_cheese, 
                                             level_id=self.current_level_id)
+        elif "8888" in self.cheat_buffer:
+            self.debug_mode = not self.debug_mode
+            self.cheat_buffer = ""
+            mixer.play_sfx(resource_manager.get_sound(SFX_CHEESE))
+            print(f"Debug Mode: {self.debug_mode}")
 
     def update(self, dt):
         self.dt = dt # Store for draw
@@ -407,3 +413,11 @@ class LevelScene(Scene):
         self.hud.draw(screen, self.player.health, self.player.config["max_health"], 
                       self.total_cheese, self.scale_cheese, red_collected, 
                       self.cheeses_to_spawn_hole, self.current_level_id, getattr(self, 'dt', 0))
+        
+        # Debug position display
+        if self.debug_mode:
+            from constant import DEFAULT_FONT
+            debug_font = resource_manager.get_font(DEFAULT_FONT, 20)
+            pos_text = f"POS: {int(self.player.pos.x)}, {int(self.player.pos.y)}"
+            debug_surf = debug_font.render(pos_text, True, (0, 255, 0))
+            screen.blit(debug_surf, (20, 100))

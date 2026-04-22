@@ -1,5 +1,5 @@
 # Player parameters
-speed = 250.0
+speed = 325.0
 jump_force = -865.0
 gravity = 1850.0
 max_health = 5
