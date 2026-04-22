@@ -25,6 +25,9 @@ class GameOverScene(Scene):
 
     def enter(self, **kwargs):
         self.cheese_count = kwargs.get("cheese_count", 0)
+        # Stop background music and all ongoing SFX
+        mixer.stop_music()
+        mixer.stop_all_sfx()
         from constant import SFX_DIR
         game_over_music = os.path.join(SFX_DIR, "game_over.mp3")
         mixer.play_music(game_over_music, loop=0) # Play once

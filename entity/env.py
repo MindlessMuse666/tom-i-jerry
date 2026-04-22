@@ -4,7 +4,7 @@ from core.resource import resource_manager
 from core.mixer import mixer
 from constant import (
     PLATFORM_PATH, MOVING_PLATFORM_PATH, GROUND_PATH,
-    CHEESE_PATH, TRAP_PATH, CRATE_PATH, HOLE_PATH,
+    CHEESE_PATH, RED_CHEESE_PATH, TRAP_PATH, CRATE_PATH, HOLE_PATH,
     SFX_CHEESE, SFX_TRAP_SNAP, SFX_CRATE_BREAK, SFX_WIN
 )
 
@@ -55,9 +55,11 @@ class MovingPlatform(Platform):
             self.vel = pygame.Vector2(0, 0)
 
 class Cheese(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, is_red=False):
         super().__init__()
-        img = resource_manager.get_image(CHEESE_PATH)
+        self.is_red = is_red
+        img_path = RED_CHEESE_PATH if is_red else CHEESE_PATH
+        img = resource_manager.get_image(img_path)
         # Jerry is scale 3, so cheese should be scale 2 or 3
         self.image = pygame.transform.scale(img, (64, 64))
         self.rect = self.image.get_rect(topleft=(x, y))

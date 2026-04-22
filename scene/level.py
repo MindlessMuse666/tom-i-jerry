@@ -4,8 +4,9 @@ import os
 from scene.base import Scene
 from entity.player import Player
 from entity.env import Platform, MovingPlatform, Cheese, Trap, Crate, Hole
-from entity.enemy import Tom, Broom
-from entity.projectile import Decoy
+from entity.enemy import Tom, Broom, BossTom
+from constant import SFX_CHEESE, SFX_WIN
+from entity.projectile import Decoy, Rocket
 from core.camera import Camera
 from core.resource import resource_manager
 from core.mixer import mixer
@@ -25,6 +26,8 @@ class LevelScene(Scene):
         self.crates = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
         self.decoys = pygame.sprite.Group()
+        self.rockets = pygame.sprite.Group()
+        self.boss = None
         self.hole = None
         self.hud = HUD()
         
@@ -34,6 +37,11 @@ class LevelScene(Scene):
         
         self.background = None
         self.bg_width = 0
+        
+        # Cheat system
+        self.cheat_buffer = ""
+        self.cheat_timer = 0
+        self.god_mode = False
 
     def enter(self, level_id=1):
         self.current_level_id = level_id
@@ -77,7 +85,11 @@ class LevelScene(Scene):
         # Load Cheeses
         self.cheeses.empty()
         for c in self.level_data["cheeses"]:
-            self.cheeses.add(Cheese(c[0], c[1]))
+            if isinstance(c, list):
+                self.cheeses.add(Cheese(c[0], c[1]))
+            else: # Dictionary for red cheese or special properties
+                is_red = c.get("is_red", False)
+                self.cheeses.add(Cheese(c["x"], c["y"], is_red=is_red))
             
         # Load Traps
         self.traps.empty()
@@ -96,6 +108,19 @@ class LevelScene(Scene):
                 self.enemies.add(Tom(en["x"], en["y"]))
             elif en["type"] == "broom":
                 self.enemies.add(Broom(en["x"], en["y"]))
+        
+        # Load Boss (Level 3 specific)
+        if "boss_spawn" in self.level_data:
+            bx, by = self.level_data["boss_spawn"]
+            self.boss = BossTom(bx, by)
+            # Create red cheeses at start for the boss fight
+            import random
+            for _ in range(15):
+                rx = random.randint(100, 1180)
+                ry = random.randint(100, 400)
+                self.cheeses.add(Cheese(rx, ry, is_red=True))
+        else:
+            self.boss = None
             
         # Load Hole (if exists in level data)
         if "hole" in self.level_data:
@@ -107,16 +132,27 @@ class LevelScene(Scene):
         # Initial stats
         self.total_cheese = 0
         self.scale_cheese = 0
+        self.red_cheese_collected = 0
         
         # Hole appearance condition: count all visible cheeses AND cheeses inside crates
         # (Each crate currently spawns exactly 1 cheese when broken)
-        self.cheeses_to_spawn_hole = len(self.cheeses) + len(self.crates)
+        # For Level 3 (Boss), we might have a specific requirement (15 red cheeses)
+        if self.current_level_id == 3:
+            self.cheeses_to_spawn_hole = 15
+        else:
+            self.cheeses_to_spawn_hole = len(self.cheeses) + len(self.crates)
 
     def handle_events(self, events):
         self.player.handle_input()
         
         for event in events:
             if event.type == pygame.KEYDOWN:
+                # Cheat input collection
+                if event.key >= pygame.K_0 and event.key <= pygame.K_9:
+                    self.cheat_buffer += event.unicode
+                    self.cheat_timer = 2.0 # Reset timer on each keypress
+                    self.check_cheats()
+                
                 if event.key == pygame.K_f or event.key == pygame.K_LCTRL:
                     # Get mouse pos and convert to world coords
                     mouse_pos = pygame.mouse.get_pos()
@@ -131,7 +167,27 @@ class LevelScene(Scene):
                     world_mouse = mouse_pos + self.camera.offset
                     self.player.throw_decoy(self.decoys, world_mouse)
 
+    def check_cheats(self):
+        if "0000" in self.cheat_buffer:
+            self.god_mode = not self.god_mode
+            self.cheat_buffer = ""
+            # Play a sound to confirm cheat?
+            mixer.play_sfx(resource_manager.get_sound(SFX_CHEESE))
+            print(f"God Mode: {self.god_mode}")
+        elif "9999" in self.cheat_buffer:
+            self.cheat_buffer = ""
+            mixer.play_sfx(resource_manager.get_sound(SFX_WIN))
+            self.game.state_machine.set_state("LEVEL_WIN", 
+                                            cheese_count=self.total_cheese, 
+                                            level_id=self.current_level_id)
+
     def update(self, dt):
+        # Update cheat timer
+        if self.cheat_timer > 0:
+            self.cheat_timer -= dt
+            if self.cheat_timer <= 0:
+                self.cheat_buffer = ""
+        
         self.moving_platforms.update(dt)
         self.traps.update(dt)
         
@@ -143,21 +199,35 @@ class LevelScene(Scene):
         self.player.update(dt, solids)
         self.enemies.update(dt, self.player, solids, self.decoys)
         self.crates.update(dt, solids)
+        self.rockets.update(dt)
+        
+        if self.boss:
+            self.boss.update(dt, self.player, self.rockets, self.crates)
         
         # Player collisions
         # 1. Cheese
         collected = pygame.sprite.spritecollide(self.player, self.cheeses, True)
         for c in collected:
             c.collect()
-            self.total_cheese += 1
-            self.scale_cheese += 1
-            if self.scale_cheese >= 5:
-                self.scale_cheese = 0
-                if self.player.health < self.player.config["max_health"]:
-                    self.player.health += 1
+            if c.is_red:
+                self.red_cheese_collected += 1
+                # Red cheese also counts towards total if needed, but here it's for level 3
+            else:
+                self.total_cheese += 1
+                self.scale_cheese += 1
+                if self.scale_cheese >= 5:
+                    self.scale_cheese = 0
+                    if self.player.health < self.player.config["max_health"]:
+                        self.player.health += 1
             
             # Hole appearance condition
-            if self.total_cheese >= self.cheeses_to_spawn_hole and self.hole:
+            condition_met = False
+            if self.current_level_id == 3:
+                condition_met = self.red_cheese_collected >= self.cheeses_to_spawn_hole
+            else:
+                condition_met = self.total_cheese >= self.cheeses_to_spawn_hole
+                
+            if condition_met and self.hole:
                 self.hole.activate()
 
         # 1.1 Hole collision
@@ -172,18 +242,39 @@ class LevelScene(Scene):
         traps_hit = pygame.sprite.spritecollide(self.player, self.traps, False)
         for trap in traps_hit:
             if trap.active:
-                if self.player.take_damage():
+                if not self.god_mode:
+                    if self.player.take_damage():
+                        trap.activate()
+                else:
                     trap.activate()
 
         # 3. Enemies
         enemies_hit = pygame.sprite.spritecollide(self.player, self.enemies, False)
         for enemy in enemies_hit:
-            self.player.take_damage()
+            if not self.god_mode:
+                self.player.take_damage()
+        
+        # 3.0 Boss/Projectiles
+        if self.boss:
+            if self.player.rect.colliderect(self.boss.rect):
+                if not self.god_mode:
+                    self.player.take_damage()
+                    
+        rockets_hit = pygame.sprite.spritecollide(self.player, self.rockets, True)
+        for rocket in rockets_hit:
+            if not self.god_mode:
+                self.player.take_damage()
         
         # 3.1 Fall damage (Out of bounds)
         # If player falls significantly below the level height or 1200px
         if self.player.pos.y > self.level_data["height"] + 200 or self.player.pos.y > 1200:
-             self.player.health = 0
+             if not self.god_mode:
+                 self.player.health = 0
+             else:
+                 # Respawn at spawn point if god mode
+                 spawn = self.level_data["spawn_point"]
+                 self.player.pos = pygame.Vector2(spawn[0], spawn[1])
+                 self.player.vel = pygame.Vector2(0, 0)
         
         # 5. Death check
         if self.player.health <= 0:
@@ -218,10 +309,14 @@ class LevelScene(Scene):
         screen.blit(self.background, (bg_offset + self.bg_width, 0))
         
         # Draw entities with camera offset
-        groups = [self.platforms, self.moving_platforms, self.cheeses, self.traps, self.crates, self.enemies, self.decoys]
+        groups = [self.platforms, self.moving_platforms, self.cheeses, self.traps, self.crates, self.enemies, self.decoys, self.rockets]
         for group in groups:
             for sprite in group:
                 screen.blit(sprite.image, sprite.rect.topleft - self.camera.offset)
+        
+        # Boss
+        if self.boss:
+            screen.blit(self.boss.image, self.boss.rect.topleft - self.camera.offset)
         
         # Hole
         if self.hole:

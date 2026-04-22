@@ -1,7 +1,8 @@
 import pygame
 import os
 from core.resource import resource_manager
-from constant import DECOY_PATH
+from constant import DECOY_PATH, ROCKET_PATH, SFX_ROCKET, SFX_CRATE_BREAK
+from core.mixer import mixer
 
 class Decoy(pygame.sprite.Sprite):
     """
@@ -86,3 +87,40 @@ class Decoy(pygame.sprite.Sprite):
                         self.rect.top = platform.rect.bottom
                         self.vel.y *= -self.bounce
                     self.pos.y = float(self.rect.centery)
+
+class Rocket(pygame.sprite.Sprite):
+    """
+    Rocket fired by Boss Tom.
+    """
+    def __init__(self, x, y, target_player):
+        super().__init__()
+        img = resource_manager.get_image(ROCKET_PATH)
+        self.image = pygame.transform.scale(img, (48, 48))
+        self.rect = self.image.get_rect(center=(x, y))
+        self.pos = pygame.Vector2(x, y)
+        self.target = target_player
+        self.speed = 300
+        self.vel = pygame.Vector2(0, 0)
+        
+        # Play fire sound
+        mixer.play_sfx(resource_manager.get_sound(SFX_ROCKET))
+
+    def update(self, dt):
+        # Home in on player center
+        target_pos = pygame.Vector2(self.target.rect.center)
+        direction = (target_pos - self.pos).normalize()
+        
+        self.vel = direction * self.speed
+        self.pos += self.vel * dt
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+        
+        # Rotate image to face movement
+        angle = self.vel.angle_to(pygame.Vector2(1, 0))
+        self.image = pygame.transform.rotate(
+            pygame.transform.scale(resource_manager.get_image(ROCKET_PATH), (48, 48)), 
+            angle
+        )
+        
+        # Out of bounds
+        if self.pos.x < -100 or self.pos.x > 1400 or self.pos.y < -100 or self.pos.y > 800:
+            self.kill()

@@ -22,5 +22,8 @@ class Mixer:
     def stop_music(self, fade_ms=500):
         pygame.mixer.music.fadeout(fade_ms)
 
+    def stop_all_sfx(self):
+        pygame.mixer.stop()
+
 # Global mixer instance
 mixer = Mixer()

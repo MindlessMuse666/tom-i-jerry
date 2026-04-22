@@ -7,7 +7,7 @@ import os
 import pygame
 from core.resource import resource_manager
 from core.mixer import mixer
-from constant import TOM_PATH, BROOM_PATH, SFX_HURT
+from constant import TOM_PATH, BROOM_PATH, BOSS_PATH, SFX_HURT
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y, image_path):
@@ -206,3 +206,79 @@ class Tom(Enemy):
 class Broom(Enemy):
     def __init__(self, x, y):
         super().__init__(x, y, BROOM_PATH)
+
+class BossTom(pygame.sprite.Sprite):
+    """
+    Boss Tom with states: IDLE, ROCKETS, CRATES, ANGRY.
+    """
+    def __init__(self, x, y):
+        super().__init__()
+        self.sprite_sheet = resource_manager.get_image(BOSS_PATH)
+        self.scale_factor = 4 # Boss is BIG
+        self.image = self.load_idle_frame()
+        self.rect = self.image.get_rect(center=(x, y))
+        self.pos = pygame.Vector2(x, y)
+        
+        self.state = "IDLE"
+        self.timer = 0
+        self.hp = 100 # Abstract HP, boss is defeated by gathering cheese
+        
+        # State timings
+        self.idle_duration = 3.0
+        self.rocket_duration = 5.0
+        self.crate_duration = 5.0
+        
+        # Attack cooldowns
+        self.attack_timer = 0
+        self.rocket_cooldown = 1.2
+        self.crate_cooldown = 1.0
+
+    def load_idle_frame(self):
+        surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+        surf.blit(self.sprite_sheet, (0, 0), (0, 0, 32, 32))
+        return pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor))
+
+    def update(self, dt, player, projectile_group, crate_group):
+        self.timer += dt
+        self.attack_timer += dt
+        
+        # State Machine
+        if self.state == "IDLE":
+            if self.timer >= self.idle_duration:
+                import random
+                self.state = random.choice(["ROCKETS", "CRATES"])
+                self.timer = 0
+                self.attack_timer = 0
+        
+        elif self.state == "ROCKETS":
+            if self.attack_timer >= self.rocket_cooldown:
+                self.fire_rocket(player, projectile_group)
+                self.attack_timer = 0
+            
+            if self.timer >= self.rocket_duration:
+                self.state = "IDLE"
+                self.timer = 0
+        
+        elif self.state == "CRATES":
+            if self.attack_timer >= self.crate_cooldown:
+                self.drop_crate(player, crate_group)
+                self.attack_timer = 0
+                
+            if self.timer >= self.crate_duration:
+                self.state = "IDLE"
+                self.timer = 0
+
+    def fire_rocket(self, player, projectile_group):
+        from entity.projectile import Rocket
+        rocket = Rocket(self.rect.centerx, self.rect.centery, player)
+        projectile_group.add(rocket)
+
+    def drop_crate(self, player, crate_group):
+        from entity.env import Crate
+        import random
+        # Drop crate above player with some randomness
+        drop_x = player.rect.centerx + random.randint(-100, 100)
+        # Clamp to screen
+        drop_x = max(50, min(1230, drop_x))
+        crate = Crate(drop_x, -50) # Drop from above screen
+        crate_group.add(crate)
