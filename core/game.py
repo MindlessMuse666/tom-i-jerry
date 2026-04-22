@@ -32,9 +32,23 @@ class Game:
         self.state_machine.add_state("LEVEL_WIN", LevelWinScene(self))
         self.state_machine.add_state("PAUSE", PauseScene(self))
         self.state_machine.set_state("MENU")
+        
+        # Cursor handling
+        pygame.mouse.set_visible(False)
+        from constant import CUR_BASIC, CUR_SELECT, CUR_CANCEL
+        from core.resource import resource_manager
+        self.cursors = {
+            "basic": resource_manager.get_image(CUR_BASIC),
+            "select": resource_manager.get_image(CUR_SELECT),
+            "cancel": resource_manager.get_image(CUR_CANCEL)
+        }
+        self.current_cursor_type = "basic"
 
     def handle_events(self):
         events = pygame.event.get()
+        # Reset cursor type to basic each frame, buttons will change it if hovered
+        self.current_cursor_type = "basic"
+        
         for event in events:
             if event.type == pygame.QUIT:
                 self.running = False
@@ -47,6 +61,11 @@ class Game:
     def draw(self):
         self.screen.fill((0, 0, 0)) # Default black fill
         self.state_machine.draw(self.screen)
+        
+        # Draw custom cursor last
+        cursor_img = self.cursors.get(self.current_cursor_type, self.cursors["basic"])
+        self.screen.blit(cursor_img, pygame.mouse.get_pos())
+        
         pygame.display.flip()
 
     def quit(self):

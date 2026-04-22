@@ -3,7 +3,8 @@ from core.resource import resource_manager
 from constant import SLIDER_BG, SLIDER_HANDLE
 
 class Slider:
-    def __init__(self, x, y, width, value, callback):
+    def __init__(self, x, y, width, value, callback, game=None):
+        self.game = game
         self.bg_img = resource_manager.get_image(SLIDER_BG)
         # Scale background if needed, but the specification says 200x20
         self.rect = self.bg_img.get_rect(topleft=(x, y))
@@ -19,6 +20,9 @@ class Slider:
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
         
+        if self.handle_rect.collidepoint(mouse_pos) and self.game:
+            self.game.current_cursor_type = "select"
+
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1 and self.handle_rect.collidepoint(mouse_pos):

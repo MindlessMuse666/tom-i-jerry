@@ -334,8 +334,18 @@ class LevelScene(Scene):
                 decoys_hit_crate = pygame.sprite.spritecollide(crate, self.decoys, True)
                 if decoys_hit_crate:
                     crate.break_crate()
+            
+            # 4.2 Crate breaks on Trap
+            traps_hit_crate = pygame.sprite.spritecollide(crate, self.traps, False)
+            for trap in traps_hit_crate:
+                if trap.active:
+                    cx, cy = crate.rect.x, crate.rect.y
+                    if crate.break_crate():
+                        trap.activate()
+                        # Spawn cheese from crate
+                        self.cheeses.add(Cheese(cx, cy))
         
-        self.camera.update(self.player.rect)
+        self.camera.update(self.player.rect, pygame.mouse.get_pos())
 
     def draw(self, screen):
         # Draw parallax background

@@ -117,8 +117,8 @@ class Rocket(pygame.sprite.Sprite):
     def __init__(self, x, y, target_pos):
         super().__init__()
         img = resource_manager.get_image(ROCKET_PATH)
-        # Increased scale 2x (base was 48, now 96)
-        self.image = pygame.transform.scale(img, (96, 96))
+        # New scale for rocket 16x28 (logical), multiplied by game scale 3.0
+        self.image = pygame.transform.scale(img, (16 * 3, 28 * 3))
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.Vector2(x, y)
         self.speed = 500 # Faster speed

@@ -11,13 +11,20 @@ class Camera:
     def apply(self, entity):
         return entity.rect.move(-self.offset.x, -self.offset.y)
 
-    def update(self, target_rect):
+    def update(self, target_rect, mouse_pos=None):
         # Target position is center of logical screen
         target_x = target_rect.centerx - LOGICAL_WIDTH // 2
         target_y = target_rect.centery - LOGICAL_HEIGHT // 2
         
+        # Mouse offset (lerp)
+        if mouse_pos:
+            # Shift camera towards cursor by a small amount (e.g. 1/8 of the distance)
+            mouse_shift_x = (mouse_pos[0] - LOGICAL_WIDTH // 2) * 0.2
+            mouse_shift_y = (mouse_pos[1] - LOGICAL_HEIGHT // 2) * 0.2
+            target_x += mouse_shift_x
+            target_y += mouse_shift_y
+
         # Clamp to level boundaries
-        # For X, we clamp strictly to the level width
         target_x = max(0, min(target_x, self.width - LOGICAL_WIDTH))
         
         # For Y, we allow the camera to follow upwards if the player jumps high

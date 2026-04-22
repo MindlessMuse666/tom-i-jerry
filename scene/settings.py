@@ -9,17 +9,18 @@ from setting import settings
 class SettingsScene(Scene):
     def __init__(self, game):
         super().__init__(game)
-        self.bg = resource_manager.get_image(BG_MENU)
+        raw_bg = resource_manager.get_image(BG_MENU)
+        self.bg = pygame.transform.scale(raw_bg, (LOGICAL_WIDTH, LOGICAL_HEIGHT))
         self.font = resource_manager.get_font(DEFAULT_FONT, 32) # Reduced from 48 to 32
         self.previous_state = "MENU"
         
         center_x = LOGICAL_WIDTH // 2
         
         # Volume Sliders
-        self.music_slider = Slider(center_x - 100, 300, 200, settings.music_volume, self.set_music_volume)
-        self.sfx_slider = Slider(center_x - 100, 400, 200, settings.sfx_volume, self.set_sfx_volume)
+        self.music_slider = Slider(center_x - 100, 300, 200, settings.music_volume, self.set_music_volume, game=self.game)
+        self.sfx_slider = Slider(center_x - 100, 400, 200, settings.sfx_volume, self.set_sfx_volume, game=self.game)
         
-        self.back_button = Button(center_x, 550, "Назад", self.go_back)
+        self.back_button = Button(center_x, 550, "Назад", self.go_back, game=self.game)
         self.buttons = [self.back_button]
         
         # Labels

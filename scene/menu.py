@@ -10,18 +10,14 @@ class MenuScene(Scene):
     def __init__(self, game):
         super().__init__(game)
         raw_bg = resource_manager.get_image(BG_MENU)
-        # Scale to screen height 720
-        bg_height = 720
-        bg_aspect = raw_bg.get_width() / raw_bg.get_height()
-        bg_width = int(bg_height * bg_aspect)
-        self.bg = pygame.transform.scale(raw_bg, (bg_width, bg_height))
-        self.bg_width = self.bg.get_width()
+        # Scale to full logical resolution 1280x720 as requested
+        self.bg = pygame.transform.scale(raw_bg, (LOGICAL_WIDTH, LOGICAL_HEIGHT))
         
         center_x = LOGICAL_WIDTH // 2
         self.buttons = [
-            Button(center_x, 300, "Начать", self.start_game),
-            Button(center_x, 400, "Опции", self.open_settings),
-            Button(center_x, 500, "Выход", self.exit_game)
+            Button(center_x, 300, "Начать", self.start_game, game=self.game),
+            Button(center_x, 400, "Опции", self.open_settings, game=self.game),
+            Button(center_x, 500, "Выход", self.exit_game, game=self.game)
         ]
 
     def enter(self, **kwargs):
@@ -40,10 +36,8 @@ class MenuScene(Scene):
         self.game.quit()
 
     def draw(self, screen):
-        # Draw tiled/scaled background
+        # Draw full background
         screen.blit(self.bg, (0, 0))
-        if self.bg_width < LOGICAL_WIDTH:
-            screen.blit(self.bg, (self.bg_width, 0))
             
         for button in self.buttons:
             button.draw(screen)

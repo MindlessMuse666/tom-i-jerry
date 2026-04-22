@@ -1,7 +1,7 @@
 import pygame
 from scene.base import Scene
 from ui.button import Button
-from constant import DEFAULT_FONT, LOGICAL_WIDTH, LOGICAL_HEIGHT
+from constant import DEFAULT_FONT, LOGICAL_WIDTH, LOGICAL_HEIGHT, BG_PAUSE
 from core.resource import resource_manager
 from core.mixer import mixer
 
@@ -10,14 +10,18 @@ class PauseScene(Scene):
         super().__init__(game)
         self.font_large = resource_manager.get_font(DEFAULT_FONT, 56)
         
+        # Load background
+        raw_bg = resource_manager.get_image(BG_PAUSE)
+        self.bg = pygame.transform.scale(raw_bg, (LOGICAL_WIDTH, LOGICAL_HEIGHT))
+        
         self.overlay = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT), pygame.SRCALPHA)
-        self.overlay.fill((0, 0, 0, 180)) 
+        self.overlay.fill((0, 0, 0, 100)) 
         
         center_x = LOGICAL_WIDTH // 2
         self.buttons = [
-            Button(center_x, 300, "Продолжить", self.resume_game),
-            Button(center_x, 400, "Опции", self.open_settings),
-            Button(center_x, 500, "В меню", self.go_to_menu)
+            Button(center_x, 300, "Игра", self.resume_game, game=self.game),
+            Button(center_x, 400, "Опции", self.open_settings, game=self.game),
+            Button(center_x, 500, "Меню", self.go_to_menu, game=self.game)
         ]
         self.current_level_id = 1
 
@@ -42,9 +46,8 @@ class PauseScene(Scene):
         pass
 
     def draw(self, screen):
-        # We assume the level was drawn before this (simple state machine doesn't stack)
-        # So we just fill with dark overlay
-        screen.fill((20, 20, 20)) 
+        # Draw background
+        screen.blit(self.bg, (0, 0))
         screen.blit(self.overlay, (0, 0))
         
         # Title

@@ -4,7 +4,8 @@ from core.mixer import mixer
 from constant import BTN_NORMAL, BTN_HOVER, DEFAULT_FONT, SFX_UI_CLICK
 
 class Button:
-    def __init__(self, x, y, text, callback, font_size=24): # Reduced default font size from 32 to 24
+    def __init__(self, x, y, text, callback, font_size=24, game=None): 
+        self.game = game
         self.normal_img = resource_manager.get_image(BTN_NORMAL)
         self.hover_img = resource_manager.get_image(BTN_HOVER)
         self.rect = self.normal_img.get_rect(center=(x, y))
@@ -14,6 +15,11 @@ class Button:
         self.is_hovered = False
         self.is_selected = False
         
+        # Determine cursor type
+        self.cursor_type = "select"
+        if text in ["Выход", "Меню"]:
+            self.cursor_type = "cancel"
+
         # Pre-load click sound
         self.click_sfx = resource_manager.get_sound(SFX_UI_CLICK)
 
@@ -26,6 +32,9 @@ class Button:
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
         self.is_hovered = self.rect.collidepoint(mouse_pos)
+        
+        if self.is_hovered and self.game:
+            self.game.current_cursor_type = self.cursor_type
 
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:

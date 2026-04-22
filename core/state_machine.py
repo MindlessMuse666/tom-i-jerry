@@ -6,6 +6,9 @@ class StateMachine:
     def add_state(self, name, state):
         self.states[name] = state
 
+    def get_state(self, name):
+        return self.states.get(name)
+
     def set_state(self, name, **kwargs):
         if self.current_state:
             self.current_state.exit()

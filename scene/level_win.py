@@ -2,7 +2,7 @@ import pygame
 import os
 from scene.base import Scene
 from ui.button import Button
-from constant import DEFAULT_FONT, LOGICAL_WIDTH, LOGICAL_HEIGHT
+from constant import DEFAULT_FONT, LOGICAL_WIDTH, LOGICAL_HEIGHT, BG_WIN
 from core.resource import resource_manager
 from core.mixer import mixer
 
@@ -14,13 +14,17 @@ class LevelWinScene(Scene):
         self.font_large = resource_manager.get_font(DEFAULT_FONT, 56)
         self.font_medium = resource_manager.get_font(DEFAULT_FONT, 32)
         
+        # Load background
+        raw_bg = resource_manager.get_image(BG_WIN)
+        self.bg = pygame.transform.scale(raw_bg, (LOGICAL_WIDTH, LOGICAL_HEIGHT))
+        
         self.overlay = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT), pygame.SRCALPHA)
-        self.overlay.fill((0, 0, 0, 180)) 
+        self.overlay.fill((0, 0, 0, 100)) 
         
         center_x = LOGICAL_WIDTH // 2
         self.buttons = [
-            Button(center_x, 450, "Вперёд!", self.next_level),
-            Button(center_x, 550, "В меню", self.go_to_menu)
+            Button(center_x, 450, "Вперёд!", self.next_level, game=self.game),
+            Button(center_x, 550, "В меню", self.go_to_menu, game=self.game)
         ]
 
     def enter(self, **kwargs):
@@ -49,7 +53,8 @@ class LevelWinScene(Scene):
         pass
 
     def draw(self, screen):
-        screen.fill((20, 20, 20)) 
+        # Draw background
+        screen.blit(self.bg, (0, 0))
         screen.blit(self.overlay, (0, 0))
         
         # Title

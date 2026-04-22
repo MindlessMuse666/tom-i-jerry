@@ -60,15 +60,15 @@ class Player(pygame.sprite.Sprite):
             self.frames[state] = []
             self.mirrored_frames[state] = []
             
-        # Row 1 (y=0): Idle (2 frames)
+        # Row 1 (y=0): Idle (2 frames, each 22x28)
         for i in range(2):
-            frame = self.get_frame(i, 0)
+            frame = self.get_frame(i, 0, 22, 28)
             self.frames["IDLE"].append(frame)
             self.mirrored_frames["IDLE"].append(pygame.transform.flip(frame, True, False))
             
-        # Row 2 (y=1): Walk (2 frames)
+        # Row 2 (y=1): Walk (2 frames, each 22x28)
         for i in range(2):
-            frame = self.get_frame(i, 1)
+            frame = self.get_frame(i, 1, 22, 28)
             self.frames["WALK"].append(frame)
             self.mirrored_frames["WALK"].append(pygame.transform.flip(frame, True, False))
         
@@ -77,15 +77,15 @@ class Player(pygame.sprite.Sprite):
         self.frames["JUMP"].append(jump_frame)
         self.mirrored_frames["JUMP"].append(pygame.transform.flip(jump_frame, True, False))
             
-        # Row 3 (y=2): Hurt (1 frame)
-        hurt_frame = self.get_frame(0, 2)
+        # Row 3 (y=2): Hurt (1 frame, 22x28)
+        hurt_frame = self.get_frame(0, 2, 22, 28)
         self.frames["HURT"].append(hurt_frame)
         self.mirrored_frames["HURT"].append(pygame.transform.flip(hurt_frame, True, False))
 
-    def get_frame(self, col, row):
-        surf = pygame.Surface((32, 32), pygame.SRCALPHA)
-        surf.blit(self.sprite_sheet, (0, 0), (col * 32, row * 32, 32, 32))
-        new_size = (int(32 * self.scale_factor), int(32 * self.scale_factor))
+    def get_frame(self, col, row, width, height):
+        surf = pygame.Surface((width, height), pygame.SRCALPHA)
+        surf.blit(self.sprite_sheet, (0, 0), (col * width, row * height, width, height))
+        new_size = (int(width * self.scale_factor), int(height * self.scale_factor))
         return pygame.transform.scale(surf, new_size)
 
     def handle_input(self):

@@ -10,7 +10,7 @@ from core.mixer import mixer
 from constant import TOM_PATH, BROOM_PATH, BOSS_PATH, SFX_HURT
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y, image_path):
+    def __init__(self, x, y, image_path, frame_w=32, frame_h=32):
         super().__init__()
         
         # Load config
@@ -29,7 +29,7 @@ class Enemy(pygame.sprite.Sprite):
                 
         self.sprite_sheet = resource_manager.get_image(image_path)
         self.scale_factor = 3
-        self.frames = self.load_frames()
+        self.frames = self.load_frames(frame_w, frame_h)
         
         self.state = "PATROL" # PATROL, CHASE, LOST
         self.frame_index = 0
@@ -55,12 +55,21 @@ class Enemy(pygame.sprite.Sprite):
         self.lost_timer = 0
         self.lost_pause_duration = 2.0
 
-    def load_frames(self):
+    def load_frames(self, w, h):
         frames = {"IDLE": [], "WALK": []}
-        for i, state in enumerate(["IDLE", "WALK"]):
-            surf = pygame.Surface((32, 32), pygame.SRCALPHA)
-            surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
-            frames[state].append(pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor)))
+        # Both IDLE and WALK are in Row 1 (y=0)
+        # IDLE is Frame 1 (col=0), WALK is Frame 2 (col=1)
+        
+        # IDLE (Frame 1)
+        surf_idle = pygame.Surface((w, h), pygame.SRCALPHA)
+        surf_idle.blit(self.sprite_sheet, (0, 0), (0, 0, w, h))
+        frames["IDLE"].append(pygame.transform.scale(surf_idle, (w * self.scale_factor, h * self.scale_factor)))
+        
+        # WALK (Frame 2)
+        surf_walk = pygame.Surface((w, h), pygame.SRCALPHA)
+        surf_walk.blit(self.sprite_sheet, (0, 0), (w, 0, w, h))
+        frames["WALK"].append(pygame.transform.scale(surf_walk, (w * self.scale_factor, h * self.scale_factor)))
+        
         return frames
 
     def update(self, dt, player, platforms, decoys=None):
@@ -201,11 +210,13 @@ class Enemy(pygame.sprite.Sprite):
 
 class Tom(Enemy):
     def __init__(self, x, y):
-        super().__init__(x, y, TOM_PATH)
+        # Tom: cell 28x29
+        super().__init__(x, y, TOM_PATH, frame_w=28, frame_h=29)
 
 class Broom(Enemy):
     def __init__(self, x, y):
-        super().__init__(x, y, BROOM_PATH)
+        # Broom: cell 22x36
+        super().__init__(x, y, BROOM_PATH, frame_w=22, frame_h=36)
 
 class BossTom(pygame.sprite.Sprite):
     """

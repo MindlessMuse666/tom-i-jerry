@@ -1,7 +1,7 @@
 import pygame
 from scene.base import Scene
 from ui.button import Button
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, DEFAULT_FONT, BG_MENU, LOGICAL_WIDTH, LOGICAL_HEIGHT
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, DEFAULT_FONT, BG_GAME_OVER, LOGICAL_WIDTH, LOGICAL_HEIGHT
 from core.resource import resource_manager
 from core.mixer import mixer
 import os
@@ -13,14 +13,18 @@ class GameOverScene(Scene):
         self.font_large = resource_manager.get_font(DEFAULT_FONT, 56) # Reduced from 72 to 56
         self.font_medium = resource_manager.get_font(DEFAULT_FONT, 32) # Reduced from 48 to 32
         
-        # Background blur/darken will be handled in draw
+        # Load background
+        raw_bg = resource_manager.get_image(BG_GAME_OVER)
+        self.bg = pygame.transform.scale(raw_bg, (LOGICAL_WIDTH, LOGICAL_HEIGHT))
+        
+        # Background blur/darken overlay
         self.overlay = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT), pygame.SRCALPHA)
-        self.overlay.fill((0, 0, 0, 180)) # Dark semi-transparent overlay
+        self.overlay.fill((0, 0, 0, 100)) # Dark semi-transparent overlay
         
         center_x = LOGICAL_WIDTH // 2
         self.buttons = [
-            Button(center_x, 450, "Заново", self.restart_level),
-            Button(center_x, 550, "В меню", self.go_to_menu)
+            Button(center_x, 450, "Заново", self.restart_level, game=self.game),
+            Button(center_x, 550, "В меню", self.go_to_menu, game=self.game)
         ]
 
     def enter(self, **kwargs):
@@ -44,13 +48,8 @@ class GameOverScene(Scene):
         pass
 
     def draw(self, screen):
-        # The game screen should have been drawn already if we use a stack, 
-        # but our StateMachine is simple and replaces states.
-        # To get the "blur" effect, we'd need to capture the last frame of the level.
-        # For now, we'll just draw the darkened overlay over the menu background 
-        # as a placeholder or just the dark overlay.
-        
-        screen.fill((20, 20, 20)) # Very dark background
+        # Draw background
+        screen.blit(self.bg, (0, 0))
         screen.blit(self.overlay, (0, 0))
         
         # Game Over Text
