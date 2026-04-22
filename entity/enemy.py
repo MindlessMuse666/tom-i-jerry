@@ -209,101 +209,143 @@ class Broom(Enemy):
 
 class BossTom(pygame.sprite.Sprite):
     """
-    Boss Tom with states: IDLE, ROCKETS, CRATES, ANGRY.
+    Boss Tom with advanced AI and movement cycles.
     """
     def __init__(self, x, y):
         super().__init__()
         self.sprite_sheet = resource_manager.get_image(BOSS_PATH)
-        self.scale_factor = 3 # Increased scale (base is 64x64, so 192x192)
+        self.scale_factor = 3
         self.frames = self.load_frames()
         self.frame_index = 0
         self.animation_timer = 0
-        self.animation_speed = 6
+        self.animation_speed = 8 # Faster animation for boss
         
-        self.state = "IDLE"
-        self.image = self.frames[self.state][0]
-        self.rect = self.image.get_rect(center=(x, y))
+        self.start_pos = pygame.Vector2(x, y)
         self.pos = pygame.Vector2(x, y)
         
+        # States: MOVE_RIGHT, ROCKETS, MOVE_CENTER, WAIT_LEFT, MOVE_LEFT, CRATES, MOVE_CENTER, WAIT_RIGHT
+        self.state = "MOVE_RIGHT"
+        self.image = self.frames["IDLE"][0]
+        self.rect = self.image.get_rect(center=(x, y))
+        
         self.timer = 0
-        self.hp = 100 # Abstract HP, boss is defeated by gathering cheese
-        
-        # State timings
-        self.idle_duration = 3.0
-        self.rocket_duration = 5.0
-        self.crate_duration = 5.0
-        
-        # Attack cooldowns
         self.attack_timer = 0
-        self.rocket_cooldown = 1.2
-        self.crate_cooldown = 1.0
+        self.move_speed = 200
+        self.facing_right = True
+        
+        # Timings
+        self.wait_duration = 1.5
+        self.phase_duration = 6.0
+        self.rocket_cooldown = 1.0
+        self.crate_cooldown = 0.8
 
     def load_frames(self):
-        frames = {"IDLE": [], "ROCKETS": [], "CRATES": []}
-        # boss_tom.png (128x64), 2 frames of 64x64
-        # Frame 0: Idle, Frame 1: Walk (but used for actions here)
+        # 128x64 sprite sheet, two 64x64 frames
+        frames = {"IDLE": [], "MOVE": [], "ACTION": []}
         for i in range(2):
             surf = pygame.Surface((64, 64), pygame.SRCALPHA)
             surf.blit(self.sprite_sheet, (0, 0), (i * 64, 0, 64, 64))
             scaled = pygame.transform.scale(surf, (64 * self.scale_factor, 64 * self.scale_factor))
-            if i == 0:
-                frames["IDLE"].append(scaled)
-            else:
-                frames["ROCKETS"].append(scaled)
-                frames["CRATES"].append(scaled)
+            frames["IDLE"].append(scaled)
+            frames["MOVE"].append(scaled)
+            frames["ACTION"].append(scaled)
         return frames
 
     def update(self, dt, player, projectile_group, crate_group):
         self.timer += dt
-        self.attack_timer += dt
         
-        # Animation
-        self.animation_timer += dt
-        if self.animation_timer >= 1.0 / self.animation_speed:
-            self.animation_timer = 0
-            anim_state = self.state if self.state in self.frames else "IDLE"
-            self.frame_index = (self.frame_index + 1) % len(self.frames[anim_state])
-            self.image = self.frames[anim_state][self.frame_index]
+        # 1. Update facing direction (Always face player)
+        self.facing_right = (player.rect.centerx > self.rect.centerx)
         
-        # State Machine
-        if self.state == "IDLE":
-            if self.timer >= self.idle_duration:
-                import random
-                self.state = random.choice(["ROCKETS", "CRATES"])
+        # 2. State Logic
+        if self.state == "MOVE_RIGHT":
+            target_x = self.start_pos.x + 300
+            self.move_towards(target_x, dt)
+            if abs(self.pos.x - target_x) < 5:
+                self.state = "ROCKETS"
                 self.timer = 0
                 self.attack_timer = 0
         
         elif self.state == "ROCKETS":
+            self.attack_timer += dt
             if self.attack_timer >= self.rocket_cooldown:
                 self.fire_rocket(player, projectile_group)
                 self.attack_timer = 0
-            
-            if self.timer >= self.rocket_duration:
-                self.state = "IDLE"
+            if self.timer >= self.phase_duration:
+                self.state = "MOVE_CENTER_FROM_RIGHT"
+        
+        elif self.state == "MOVE_CENTER_FROM_RIGHT":
+            self.move_towards(self.start_pos.x, dt)
+            if abs(self.pos.x - self.start_pos.x) < 5:
+                self.state = "WAIT_LEFT"
                 self.timer = 0
         
+        elif self.state == "WAIT_LEFT":
+            if self.timer >= self.wait_duration:
+                self.state = "MOVE_LEFT"
+        
+        elif self.state == "MOVE_LEFT":
+            target_x = self.start_pos.x - 300
+            self.move_towards(target_x, dt)
+            if abs(self.pos.x - target_x) < 5:
+                self.state = "CRATES"
+                self.timer = 0
+                self.attack_timer = 0
+        
         elif self.state == "CRATES":
+            self.attack_timer += dt
             if self.attack_timer >= self.crate_cooldown:
                 self.drop_crate(player, crate_group)
                 self.attack_timer = 0
-                
-            if self.timer >= self.crate_duration:
-                self.state = "IDLE"
+            if self.timer >= self.phase_duration:
+                self.state = "MOVE_CENTER_FROM_LEFT"
+        
+        elif self.state == "MOVE_CENTER_FROM_LEFT":
+            self.move_towards(self.start_pos.x, dt)
+            if abs(self.pos.x - self.start_pos.x) < 5:
+                self.state = "WAIT_RIGHT"
                 self.timer = 0
+        
+        elif self.state == "WAIT_RIGHT":
+            if self.timer >= self.wait_duration:
+                self.state = "MOVE_RIGHT"
+
+        # 3. Animation
+        self.animate(dt)
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+
+    def move_towards(self, target_x, dt):
+        if self.pos.x < target_x:
+            self.pos.x = min(target_x, self.pos.x + self.move_speed * dt)
+        elif self.pos.x > target_x:
+            self.pos.x = max(target_x, self.pos.x - self.move_speed * dt)
+
+    def animate(self, dt):
+        self.animation_timer += dt
+        if self.animation_timer >= 1.0 / self.animation_speed:
+            self.animation_timer = 0
+            self.frame_index = (self.frame_index + 1) % 2
+            
+        # Get frame 0 or 1
+        base_img = self.frames["IDLE"][self.frame_index]
+        if not self.facing_right:
+            self.image = pygame.transform.flip(base_img, True, False)
+        else:
+            self.image = base_img
 
     def fire_rocket(self, player, projectile_group):
         from entity.projectile import Rocket
-        rocket = Rocket(self.rect.centerx, self.rect.centery, player)
+        # Target player's current center
+        rocket = Rocket(self.rect.centerx, self.rect.centery, player.rect.center)
         projectile_group.add(rocket)
 
     def drop_crate(self, player, crate_group):
         from entity.env import Crate
         import random
-        # Drop crate above player with some randomness
-        drop_x = player.rect.centerx + random.randint(-150, 150)
-        # Clamp to screen
+        drop_x = player.rect.centerx + random.randint(-100, 100)
         drop_x = max(64, min(1216, drop_x))
-        crate = Crate(drop_x, -100) # Drop from above screen
-        # Mark as special boss crate that contains red cheese
-        crate.is_boss_crate = True 
+        crate = Crate(drop_x, -100)
+        crate.is_boss_crate = True
+        # Reduce boss crate gravity
+        crate.gravity = 600 # Half of normal gravity
         crate_group.add(crate)

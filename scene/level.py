@@ -112,13 +112,8 @@ class LevelScene(Scene):
         # Load Boss (Level 3 specific)
         if "boss_spawn" in self.level_data:
             bx, by = self.level_data["boss_spawn"]
-            self.boss = BossTom(bx, by)
-            # Create red cheeses at start for the boss fight
-            import random
-            for _ in range(15):
-                rx = random.randint(100, 1180)
-                ry = random.randint(100, 400)
-                self.cheeses.add(Cheese(rx, ry, is_red=True))
+            # Position boss slightly higher as requested
+            self.boss = BossTom(bx, by - 50)
         else:
             self.boss = None
             

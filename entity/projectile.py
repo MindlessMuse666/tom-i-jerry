@@ -111,40 +111,35 @@ class Decoy(pygame.sprite.Sprite):
 
 class Rocket(pygame.sprite.Sprite):
     """
-    Rocket fired by Boss Tom.
+    Rocket fired by Boss Tom. 
+    Targets where the player was at launch.
     """
-    def __init__(self, x, y, target_player):
+    def __init__(self, x, y, target_pos):
         super().__init__()
         img = resource_manager.get_image(ROCKET_PATH)
         # Increased scale 2x (base was 48, now 96)
         self.image = pygame.transform.scale(img, (96, 96))
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.Vector2(x, y)
-        self.target = target_player
-        self.speed = 350
-        self.vel = pygame.Vector2(0, 0)
+        self.speed = 400
+        
+        # Calculate direction to the target position provided at launch
+        direction = (pygame.Vector2(target_pos) - self.pos).normalize()
+        self.vel = direction * self.speed
+        
+        # Initial rotation
+        angle = self.vel.angle_to(pygame.Vector2(1, 0))
+        self.image = pygame.transform.rotate(self.image, angle)
         
         # Play fire sound
         mixer.play_sfx(resource_manager.get_sound(SFX_ROCKET_LAUNCH))
 
     def update(self, dt):
-        # Home in on player center
-        target_pos = pygame.Vector2(self.target.rect.center)
-        direction = (target_pos - self.pos).normalize()
-        
-        self.vel = direction * self.speed
         self.pos += self.vel * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
         
-        # Rotate image to face movement
-        angle = self.vel.angle_to(pygame.Vector2(1, 0))
-        self.image = pygame.transform.rotate(
-            pygame.transform.scale(resource_manager.get_image(ROCKET_PATH), (96, 96)), 
-            angle
-        )
-        
         # Out of bounds
-        if self.pos.x < -100 or self.pos.x > 1400 or self.pos.y < -100 or self.pos.y > 800:
+        if self.pos.x < -200 or self.pos.x > 1500 or self.pos.y < -200 or self.pos.y > 1000:
             self.kill()
 
     def explode(self):
