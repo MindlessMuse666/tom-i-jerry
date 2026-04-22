@@ -11,13 +11,17 @@ from constant import (
 class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height, image_path=PLATFORM_PATH):
         super().__init__()
+        # Ensure dimensions are multiples of 32 for perfect tiling
+        width = (width // 32) * 32
+        height = (height // 32) * 32
+        
         self.image = pygame.Surface((width, height), pygame.SRCALPHA)
         tile_img = resource_manager.get_image(image_path)
         
-        # Scaling tiles
-        self.tile_scale = 2 # Scale tiles 2x (64x64)
-        scaled_tile = pygame.transform.scale(tile_img, (32 * self.tile_scale, 32 * self.tile_scale))
-        tile_size = 32 * self.tile_scale
+        # Scaling tiles: if it's ground, use original size (32x32)
+        # We use 32x32 as base tile size for all platforms
+        tile_size = 32
+        scaled_tile = pygame.transform.scale(tile_img, (tile_size, tile_size))
         
         # Tile the image
         for ty in range(0, height, tile_size):

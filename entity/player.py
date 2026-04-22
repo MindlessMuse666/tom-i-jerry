@@ -105,15 +105,20 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, dt, platforms):
         # 1. Handle moving platform displacement (if standing on one)
-        # We do this before applying gravity or own movement
         if self.on_ground and self.current_platform and hasattr(self.current_platform, 'vel'):
-            # Directly shift player with the platform
             platform_displacement = self.current_platform.vel * dt
             self.pos += platform_displacement
             self.rect.topleft = (round(self.pos.x), round(self.pos.y))
 
         # 2. Apply gravity and own movement
-        self.vel.y += self.acc.y * dt
+        # Improve gravity: heavier when falling, slightly floaty at peak
+        gravity = self.acc.y
+        if self.vel.y > 0: # Falling
+             gravity *= 1.5
+        elif self.vel.y < 0 and abs(self.vel.y) < 100: # Peak of jump
+             gravity *= 0.5
+             
+        self.vel.y += gravity * dt
         
         # Move horizontal
         self.pos.x += self.vel.x * dt

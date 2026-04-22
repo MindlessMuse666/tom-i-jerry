@@ -15,7 +15,7 @@ class PauseScene(Scene):
         
         center_x = LOGICAL_WIDTH // 2
         self.buttons = [
-            Button(center_x, 300, "Далее", self.resume_game),
+            Button(center_x, 300, "Продолжить", self.resume_game),
             Button(center_x, 400, "Опции", self.open_settings),
             Button(center_x, 500, "В меню", self.go_to_menu)
         ]
