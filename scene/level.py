@@ -42,10 +42,15 @@ class LevelScene(Scene):
         self.cheat_buffer = ""
         self.cheat_timer = 0
         self.god_mode = False
+        self.frame_count = 0
 
     def enter(self, level_id=1, resume=False):
         self.current_level_id = level_id
         if not resume:
+            # Stop all previous sounds and music
+            mixer.stop_music()
+            mixer.stop_all_sfx()
+            
             self.load_level(level_id)
             mixer.play_music(self.level_data["music"])
 
@@ -129,6 +134,7 @@ class LevelScene(Scene):
         self.total_cheese = 0
         self.scale_cheese = 0
         self.red_cheese_collected = 0
+        self.frame_count = 0 # Reset frame count for new level
         
         # Hole appearance condition: count all visible cheeses AND cheeses inside crates
         # (Each crate currently spawns exactly 1 cheese when broken)
@@ -181,6 +187,8 @@ class LevelScene(Scene):
                                             level_id=self.current_level_id)
 
     def update(self, dt):
+        self.dt = dt # Store for draw
+        self.frame_count += 1
         # Update cheat timer
         if self.cheat_timer > 0:
             self.cheat_timer -= dt
@@ -197,7 +205,21 @@ class LevelScene(Scene):
         self.decoys.update(dt, solids)
         self.player.update(dt, solids)
         self.enemies.update(dt, self.player, solids, self.decoys)
+        # Check for enemies that fell off
+        for enemy in list(self.enemies):
+            if hasattr(enemy, 'fell_off') and enemy.fell_off:
+                # Spawn cheese at spawn point
+                self.cheeses.add(Cheese(enemy.spawn_pos.x, enemy.spawn_pos.y))
+                enemy.kill()
+
         self.crates.update(dt, solids)
+        # Check for crates that fell off
+        for crate in list(self.crates):
+            if hasattr(crate, 'fell_off') and crate.fell_off:
+                # Spawn cheese at spawn point
+                self.cheeses.add(Cheese(crate.spawn_pos.x, crate.spawn_pos.y))
+                crate.kill()
+
         self.rockets.update(dt)
         
         if self.boss:
@@ -275,8 +297,9 @@ class LevelScene(Scene):
                 rocket.explode()
         
         # 3.1 Fall damage (Out of bounds)
-        # If player falls significantly below the level height or 1200px
-        if self.player.pos.y > self.level_data["height"] + 200 or self.player.pos.y > 1200:
+        # If player falls significantly below the level height
+        # Add a small delay/check to prevent immediate death on spawn if dt was large
+        if self.frame_count > 10 and self.player.pos.y > self.level_data.get("height", 2000) + 500:
              if not self.god_mode:
                  self.player.health = 0
              else:
@@ -371,9 +394,10 @@ class LevelScene(Scene):
         self.player.draw(screen, self.camera.offset)
         
         # HUD
-        red_left = None
+        red_collected = None
         if self.current_level_id == 3:
-            red_left = max(0, self.cheeses_to_spawn_hole - self.red_cheese_collected)
+            red_collected = self.red_cheese_collected
             
         self.hud.draw(screen, self.player.health, self.player.config["max_health"], 
-                      self.total_cheese, self.scale_cheese, red_left)
+                      self.total_cheese, self.scale_cheese, red_collected, 
+                      self.cheeses_to_spawn_hole, self.current_level_id, getattr(self, 'dt', 0))

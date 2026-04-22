@@ -1,4 +1,5 @@
 import pygame
+import math
 from core.resource import resource_manager
 from constant import (
     HEART_FULL, HEART_EMPTY, CHEESE_HUD, CHEESE_HUD_EMPTY, DECOY_PATH,
@@ -12,16 +13,46 @@ class HUD:
         self.cheese_full = resource_manager.get_image(CHEESE_HUD)
         self.cheese_empty = resource_manager.get_image(CHEESE_HUD_EMPTY)
         self.decoy_img = pygame.transform.scale(resource_manager.get_image(DECOY_PATH), (32, 32))
-        self.font = resource_manager.get_font(DEFAULT_FONT, 28) # Reduced from 36 to 28
+        self.font = resource_manager.get_font(DEFAULT_FONT, 28)
+        
+        # Animation timer
+        self.animation_timer = 0
 
-    def draw(self, screen, player_health, max_health, cheese_count, scale_cheese, red_cheese_left=None):
+    def draw(self, screen, player_health, max_health, cheese_count, scale_cheese, 
+             red_cheese_collected=None, required_cheese=0, level_id=1, dt=0):
+        self.animation_timer += dt
+        
         # 1. Cheese counter (top left)
-        cheese_text = self.font.render(f"Сыр: {cheese_count}", True, (255, 255, 255))
+        cheese_color = (255, 255, 255)
+        pulse_scale = 1.0
+        
+        # Condition for level 1-2
+        if level_id < 3 and cheese_count >= required_cheese and required_cheese > 0:
+            cheese_color = (255, 255, 50) # Yellow
+            pulse_scale = 1.0 + 0.1 * math.sin(self.animation_timer * 10)
+        
+        cheese_text = self.font.render(f"Сыр: {cheese_count}", True, cheese_color)
+        if pulse_scale != 1.0:
+            new_size = (int(cheese_text.get_width() * pulse_scale), int(cheese_text.get_height() * pulse_scale))
+            cheese_text = pygame.transform.scale(cheese_text, new_size)
+        
         screen.blit(cheese_text, (20, 20))
         
         # 1.1 Red cheese counter (for boss level)
-        if red_cheese_left is not None:
-             red_text = self.font.render(f"До победы: {red_cheese_left}", True, (255, 50, 50))
+        if red_cheese_collected is not None:
+             red_color = (255, 50, 50)
+             red_pulse = 1.0
+             if red_cheese_collected >= required_cheese:
+                 red_color = (255, 0, 0) # Brighter red
+                 red_pulse = 1.0 + 0.15 * math.sin(self.animation_timer * 12)
+             
+             red_left = max(0, required_cheese - red_cheese_collected)
+             red_text = self.font.render(f"До победы: {red_left}", True, red_color)
+             
+             if red_pulse != 1.0:
+                 new_size = (int(red_text.get_width() * red_pulse), int(red_text.get_height() * red_pulse))
+                 red_text = pygame.transform.scale(red_text, new_size)
+                 
              screen.blit(red_text, (20, 60))
         
         # 2. Health (top right)

@@ -23,8 +23,8 @@ class LevelWinScene(Scene):
         
         center_x = LOGICAL_WIDTH // 2
         self.buttons = [
-            Button(center_x, 450, "Вперёд!", self.next_level, game=self.game),
-            Button(center_x, 550, "В меню", self.go_to_menu, game=self.game)
+            Button(center_x, 480, "Вперёд!", self.next_level, game=self.game),
+            Button(center_x, 600, "В меню", self.go_to_menu, game=self.game)
         ]
 
     def enter(self, **kwargs):

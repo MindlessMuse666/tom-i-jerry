@@ -11,21 +11,23 @@ class SettingsScene(Scene):
         super().__init__(game)
         raw_bg = resource_manager.get_image(BG_MENU)
         self.bg = pygame.transform.scale(raw_bg, (LOGICAL_WIDTH, LOGICAL_HEIGHT))
-        self.font = resource_manager.get_font(DEFAULT_FONT, 32) # Reduced from 48 to 32
+        self.font = resource_manager.get_font(DEFAULT_FONT, 32)
         self.previous_state = "MENU"
         
         center_x = LOGICAL_WIDTH // 2
         
-        # Volume Sliders
-        self.music_slider = Slider(center_x - 100, 300, 200, settings.music_volume, self.set_music_volume, game=self.game)
-        self.sfx_slider = Slider(center_x - 100, 400, 200, settings.sfx_volume, self.set_sfx_volume, game=self.game)
+        # Labels - Colored
+        self.music_label = self.font.render("Музыка", True, (255, 50, 50)) # Red-ish
+        self.sfx_label = self.font.render("Эффекты", True, (50, 150, 255)) # Blue-ish
         
-        self.back_button = Button(center_x, 550, "Назад", self.go_back, game=self.game)
+        # Volume Sliders - Increased width and better vertical spacing
+        slider_w = 400
+        self.music_slider = Slider(center_x - slider_w // 2, 220, slider_w, settings.music_volume, self.set_music_volume, game=self.game)
+        self.sfx_slider = Slider(center_x - slider_w // 2, 420, slider_w, settings.sfx_volume, self.set_sfx_volume, game=self.game)
+        
+        # Back Button - Lowered to separate it from sliders
+        self.back_button = Button(center_x, 620, "Назад", self.go_back, game=self.game)
         self.buttons = [self.back_button]
-        
-        # Labels
-        self.music_label = self.font.render("Музыка", True, (255, 255, 255))
-        self.sfx_label = self.font.render("Эффекты", True, (255, 255, 255))
 
     def set_music_volume(self, value):
         settings.music_volume = value
@@ -51,9 +53,9 @@ class SettingsScene(Scene):
     def draw(self, screen):
         screen.blit(self.bg, (0, 0))
         
-        # Draw labels
-        screen.blit(self.music_label, (LOGICAL_WIDTH // 2 - self.music_label.get_width() // 2, 250))
-        screen.blit(self.sfx_label, (LOGICAL_WIDTH // 2 - self.sfx_label.get_width() // 2, 350))
+        # Draw labels - Positioned above sliders
+        screen.blit(self.music_label, (LOGICAL_WIDTH // 2 - self.music_label.get_width() // 2, 170))
+        screen.blit(self.sfx_label, (LOGICAL_WIDTH // 2 - self.sfx_label.get_width() // 2, 370))
         
         self.music_slider.draw(screen)
         self.sfx_slider.draw(screen)

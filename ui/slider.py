@@ -5,13 +5,17 @@ from constant import SLIDER_BG, SLIDER_HANDLE
 class Slider:
     def __init__(self, x, y, width, value, callback, game=None):
         self.game = game
-        self.bg_img = resource_manager.get_image(SLIDER_BG)
-        # Scale background if needed, but the specification says 200x20
+        raw_bg = resource_manager.get_image(SLIDER_BG)
+        # Scale background to be a bit thicker for better visibility
+        self.bg_img = pygame.transform.scale(raw_bg, (width, 40))
         self.rect = self.bg_img.get_rect(topleft=(x, y))
-        self.width = width # Logic width
+        self.width = width
         
-        self.handle_img = resource_manager.get_image(SLIDER_HANDLE)
-        self.handle_rect = self.handle_img.get_rect(center=(x + value * width, self.rect.centery))
+        raw_handle = resource_manager.get_image(SLIDER_HANDLE)
+        # Scale handle to fit the thicker background
+        self.handle_img = pygame.transform.scale(raw_handle, (30, 60))
+        # Initial handle position
+        self.handle_rect = self.handle_img.get_rect(center=(self.rect.left + value * width, self.rect.centery))
         
         self.value = value
         self.callback = callback
@@ -20,6 +24,7 @@ class Slider:
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
         
+        # Check hover on handle for cursor
         if self.handle_rect.collidepoint(mouse_pos) and self.game:
             self.game.current_cursor_type = "slider"
 
@@ -31,7 +36,7 @@ class Slider:
                 self.dragging = False
         
         if self.dragging:
-            # Update value based on mouse position
+            # Update value based on mouse position, clamped strictly to background edges
             new_x = max(self.rect.left, min(mouse_pos[0], self.rect.right))
             self.value = (new_x - self.rect.left) / self.width
             self.handle_rect.centerx = new_x

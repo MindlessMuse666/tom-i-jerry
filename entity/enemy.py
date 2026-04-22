@@ -40,12 +40,14 @@ class Enemy(pygame.sprite.Sprite):
         self.image = self.frames["IDLE"][0]
         self.rect = self.image.get_rect(topleft=(x, y))
         self.pos = pygame.Vector2(x, y)
+        self.spawn_pos = pygame.Vector2(x, y)
         self.vel = pygame.Vector2(0, 0)
         self.gravity = 1200
         
         self.on_ground = False
         self.health = self.config["health"]
-        
+        self.fell_off = False # Flag for LevelScene
+
         # Patrol settings
         self.start_x = x
         self.patrol_dist = self.config.get("patrol_distance", 200.0)
@@ -166,7 +168,8 @@ class Enemy(pygame.sprite.Sprite):
         
         # 5. Out of bounds check (Cleanup if really fell off)
         if self.pos.y > 2000: # Far below the map
-            self.kill()
+            self.fell_off = True
+            # self.kill() is now handled by LevelScene to spawn cheese
             
         self.update_animations(dt)
 

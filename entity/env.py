@@ -117,10 +117,12 @@ class Crate(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=(x, y))
         
         self.pos = pygame.Vector2(x, y)
+        self.spawn_pos = pygame.Vector2(x, y)
         self.vel = pygame.Vector2(0, 0)
         self.gravity = 1200
         self.friction = 500
         self.is_broken = False
+        self.fell_off = False # Flag for LevelScene
         self.activated_by_player = False
         self.is_boss_crate = False 
         self.has_dealt_fall_damage = False # New flag
@@ -143,6 +145,12 @@ class Crate(pygame.sprite.Sprite):
             self.broken_timer += dt
             if self.broken_timer >= self.broken_duration:
                 self.kill()
+            return
+
+        # 0. Out of bounds check
+        if self.pos.y > 2000:
+            self.fell_off = True
+            # self.kill() is now handled by LevelScene to spawn cheese
             return
 
         # Gravity
