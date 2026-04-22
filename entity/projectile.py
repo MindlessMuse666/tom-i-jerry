@@ -1,7 +1,7 @@
 import pygame
 import os
 from core.resource import resource_manager
-from constant import DECOY_PATH, ROCKET_PATH, SFX_ROCKET, SFX_CRATE_BREAK
+from constant import DECOY_PATH, ROCKET_PATH, SFX_ROCKET_LAUNCH, SFX_EXPLOSION, SFX_CRATE_BREAK
 from core.mixer import mixer
 
 class Decoy(pygame.sprite.Sprite):
@@ -12,9 +12,13 @@ class Decoy(pygame.sprite.Sprite):
         super().__init__()
         
         # Load visual
-        img = resource_manager.get_image(DECOY_PATH)
-        # Scaling: same as Cheese (scale 2, 64x64)
-        self.image = pygame.transform.scale(img, (64, 64))
+        self.sprite_sheet = resource_manager.get_image(DECOY_PATH)
+        self.frames = self.load_frames()
+        self.frame_index = 0
+        self.animation_timer = 0
+        self.animation_speed = 8 # Fast blink/animation
+        
+        self.image = self.frames[0]
         self.rect = self.image.get_rect(center=(x, y))
         
         # Physics
@@ -27,8 +31,25 @@ class Decoy(pygame.sprite.Sprite):
         self.on_ground = False
         self.bounce_count = 0
         self.life_timer = None # Will be set to 3.0 after first bounce/landing
+
+    def load_frames(self):
+        frames = []
+        # decoy.png (64x32), 2 frames of 32x32
+        for i in range(2):
+            surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+            surf.blit(self.sprite_sheet, (0, 0), (i * 32, 0, 32, 32))
+            # Scale 2x as before (64x64)
+            frames.append(pygame.transform.scale(surf, (64, 64)))
+        return frames
         
     def update(self, dt, platforms):
+        # Animation
+        self.animation_timer += dt
+        if self.animation_timer >= 1.0 / self.animation_speed:
+            self.animation_timer = 0
+            self.frame_index = (self.frame_index + 1) % len(self.frames)
+            self.image = self.frames[self.frame_index]
+
         # 1. Gravity (only if not landed or still bouncing)
         if not self.on_ground:
             self.vel.y += self.gravity * dt
@@ -95,15 +116,16 @@ class Rocket(pygame.sprite.Sprite):
     def __init__(self, x, y, target_player):
         super().__init__()
         img = resource_manager.get_image(ROCKET_PATH)
-        self.image = pygame.transform.scale(img, (48, 48))
+        # Increased scale 2x (base was 48, now 96)
+        self.image = pygame.transform.scale(img, (96, 96))
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.Vector2(x, y)
         self.target = target_player
-        self.speed = 300
+        self.speed = 350
         self.vel = pygame.Vector2(0, 0)
         
         # Play fire sound
-        mixer.play_sfx(resource_manager.get_sound(SFX_ROCKET))
+        mixer.play_sfx(resource_manager.get_sound(SFX_ROCKET_LAUNCH))
 
     def update(self, dt):
         # Home in on player center
@@ -117,10 +139,14 @@ class Rocket(pygame.sprite.Sprite):
         # Rotate image to face movement
         angle = self.vel.angle_to(pygame.Vector2(1, 0))
         self.image = pygame.transform.rotate(
-            pygame.transform.scale(resource_manager.get_image(ROCKET_PATH), (48, 48)), 
+            pygame.transform.scale(resource_manager.get_image(ROCKET_PATH), (96, 96)), 
             angle
         )
         
         # Out of bounds
         if self.pos.x < -100 or self.pos.x > 1400 or self.pos.y < -100 or self.pos.y > 800:
             self.kill()
+
+    def explode(self):
+        mixer.play_sfx(resource_manager.get_sound(SFX_EXPLOSION))
+        self.kill()

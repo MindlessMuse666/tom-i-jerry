@@ -85,7 +85,8 @@ SFX_CRATE_BREAK = os.path.join(SFX_DIR, "crate_break.mp3")
 SFX_TRAP_SNAP = os.path.join(SFX_DIR, "trap_snap.mp3")
 SFX_UI_CLICK = os.path.join(SFX_DIR, "ui_click.mp3")
 SFX_WIN = os.path.join(SFX_DIR, "win.mp3")
-SFX_ROCKET = os.path.join(SFX_DIR, "rocket.mp3")
+SFX_ROCKET_LAUNCH = os.path.join(SFX_DIR, "rocket_launch.mp3")
+SFX_EXPLOSION = os.path.join(SFX_DIR, "explosion.mp3")
 
 # Fonts
 DEFAULT_FONT = os.path.join(FONT_DIR, "public-pixel.ttf")

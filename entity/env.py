@@ -118,6 +118,7 @@ class Crate(pygame.sprite.Sprite):
         self.friction = 500
         self.is_broken = False
         self.activated_by_player = False
+        self.is_boss_crate = False # New property for boss phase
         self.broken_timer = 0
         self.broken_duration = 0.3 # Reduced to 0.3 seconds as requested
         

@@ -171,7 +171,10 @@ class LevelScene(Scene):
         if "0000" in self.cheat_buffer:
             self.god_mode = not self.god_mode
             self.cheat_buffer = ""
-            # Play a sound to confirm cheat?
+            # Reset player health if enabling god mode
+            if self.god_mode:
+                self.player.health = self.player.config["max_health"]
+            # Play a sound to confirm cheat
             mixer.play_sfx(resource_manager.get_sound(SFX_CHEESE))
             print(f"God Mode: {self.god_mode}")
         elif "9999" in self.cheat_buffer:
@@ -260,10 +263,20 @@ class LevelScene(Scene):
                 if not self.god_mode:
                     self.player.take_damage()
                     
-        rockets_hit = pygame.sprite.spritecollide(self.player, self.rockets, True)
+        rockets_hit = pygame.sprite.spritecollide(self.player, self.rockets, False)
         for rocket in rockets_hit:
             if not self.god_mode:
-                self.player.take_damage()
+                if self.player.take_damage():
+                    rocket.explode()
+            else:
+                rocket.explode()
+        
+        # 3.0.1 Rocket/Platform/Crate collision
+        for rocket in list(self.rockets):
+            if pygame.sprite.spritecollide(rocket, self.platforms, False) or \
+               pygame.sprite.spritecollide(rocket, self.moving_platforms, False) or \
+               pygame.sprite.spritecollide(rocket, self.crates, False):
+                rocket.explode()
         
         # 3.1 Fall damage (Out of bounds)
         # If player falls significantly below the level height or 1200px
@@ -294,6 +307,22 @@ class LevelScene(Scene):
                         enemy.kill()
                         self.cheeses.add(Cheese(cx, cy))
                 
+                # Boss crate special logic: drop red cheese when it hits ground or player
+                if crate.is_boss_crate:
+                    # Check if hit ground
+                    if crate.vel.y == 0: # It landed
+                        cx, cy = crate.rect.centerx, crate.rect.top
+                        if crate.break_crate():
+                            self.cheeses.add(Cheese(cx, cy, is_red=True))
+                    
+                    # Check if hit player
+                    if self.player.rect.colliderect(crate.rect):
+                         cx, cy = crate.rect.centerx, crate.rect.top
+                         if not self.god_mode:
+                             self.player.take_damage()
+                         if crate.break_crate():
+                             self.cheeses.add(Cheese(cx, cy, is_red=True))
+
                 # Crate also breaks if it hits a decoy (distraction mechanic)
                 decoys_hit_crate = pygame.sprite.spritecollide(crate, self.decoys, True)
                 if decoys_hit_crate:

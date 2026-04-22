@@ -214,12 +214,17 @@ class BossTom(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.sprite_sheet = resource_manager.get_image(BOSS_PATH)
-        self.scale_factor = 4 # Boss is BIG
-        self.image = self.load_idle_frame()
+        self.scale_factor = 3 # Increased scale (base is 64x64, so 192x192)
+        self.frames = self.load_frames()
+        self.frame_index = 0
+        self.animation_timer = 0
+        self.animation_speed = 6
+        
+        self.state = "IDLE"
+        self.image = self.frames[self.state][0]
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.Vector2(x, y)
         
-        self.state = "IDLE"
         self.timer = 0
         self.hp = 100 # Abstract HP, boss is defeated by gathering cheese
         
@@ -233,14 +238,32 @@ class BossTom(pygame.sprite.Sprite):
         self.rocket_cooldown = 1.2
         self.crate_cooldown = 1.0
 
-    def load_idle_frame(self):
-        surf = pygame.Surface((32, 32), pygame.SRCALPHA)
-        surf.blit(self.sprite_sheet, (0, 0), (0, 0, 32, 32))
-        return pygame.transform.scale(surf, (32 * self.scale_factor, 32 * self.scale_factor))
+    def load_frames(self):
+        frames = {"IDLE": [], "ROCKETS": [], "CRATES": []}
+        # boss_tom.png (128x64), 2 frames of 64x64
+        # Frame 0: Idle, Frame 1: Walk (but used for actions here)
+        for i in range(2):
+            surf = pygame.Surface((64, 64), pygame.SRCALPHA)
+            surf.blit(self.sprite_sheet, (0, 0), (i * 64, 0, 64, 64))
+            scaled = pygame.transform.scale(surf, (64 * self.scale_factor, 64 * self.scale_factor))
+            if i == 0:
+                frames["IDLE"].append(scaled)
+            else:
+                frames["ROCKETS"].append(scaled)
+                frames["CRATES"].append(scaled)
+        return frames
 
     def update(self, dt, player, projectile_group, crate_group):
         self.timer += dt
         self.attack_timer += dt
+        
+        # Animation
+        self.animation_timer += dt
+        if self.animation_timer >= 1.0 / self.animation_speed:
+            self.animation_timer = 0
+            anim_state = self.state if self.state in self.frames else "IDLE"
+            self.frame_index = (self.frame_index + 1) % len(self.frames[anim_state])
+            self.image = self.frames[anim_state][self.frame_index]
         
         # State Machine
         if self.state == "IDLE":
@@ -277,8 +300,10 @@ class BossTom(pygame.sprite.Sprite):
         from entity.env import Crate
         import random
         # Drop crate above player with some randomness
-        drop_x = player.rect.centerx + random.randint(-100, 100)
+        drop_x = player.rect.centerx + random.randint(-150, 150)
         # Clamp to screen
-        drop_x = max(50, min(1230, drop_x))
-        crate = Crate(drop_x, -50) # Drop from above screen
+        drop_x = max(64, min(1216, drop_x))
+        crate = Crate(drop_x, -100) # Drop from above screen
+        # Mark as special boss crate that contains red cheese
+        crate.is_boss_crate = True 
         crate_group.add(crate)
