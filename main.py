@@ -9,7 +9,19 @@ def main():
     Инициализирует Pygame, создает объект игры и запускает главный цикл.
     """
     pygame.init()
-    pygame.mixer.init()
+    
+    # Инициализация аудио с обработкой ошибок (WASAPI Fix)
+    try:
+        pygame.mixer.init()
+    except pygame.error as e:
+        print(f"Предупреждение: Не удалось инициализировать аудио (WASAPI error): {e}")
+        # Попытка инициализации с фиктивным драйвером (без звука), чтобы игра не вылетала
+        import os
+        os.environ['SDL_AUDIODRIVER'] = 'dummy'
+        try:
+            pygame.mixer.init()
+        except:
+            print("Критическая ошибка: Аудио-подсистема полностью недоступна.")
     
     # Создание основного игрового контроллера
     game = Game()
