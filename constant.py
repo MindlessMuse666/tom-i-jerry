@@ -30,8 +30,26 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
 # Базовые директории
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ASSET_DIR = os.path.join(BASE_DIR, "asset")
+def get_resource_path(relative_path):
+    """
+    Возвращает абсолютный путь к ресурсу, учитывая упаковку PyInstaller.
+    
+    Args:
+        relative_path: Относительный путь к файлу.
+    
+    Returns:
+        Абсолютный путь.
+    """
+    import sys
+    try:
+        # PyInstaller создает временную папку и сохраняет путь в _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
+
+BASE_DIR = get_resource_path("")
+ASSET_DIR = get_resource_path("asset")
 VISUAL_DIR = os.path.join(ASSET_DIR, "visual")
 AUDIO_DIR = os.path.join(ASSET_DIR, "audio")
 FONT_DIR = os.path.join(ASSET_DIR, "font")

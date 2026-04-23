@@ -5,7 +5,7 @@ from scene.base import Scene
 from entity.player import Player
 from entity.env import Platform, MovingPlatform, Cheese, Trap, Crate, Hole
 from entity.enemy import Tom, Broom, BossTom
-from constant import DEFAULT_FONT, LOGICAL_HEIGHT, LOGICAL_WIDTH, SFX_BOSS_DEATH, SFX_CHEESE, SFX_LEVEL_START, SFX_TOM_DEATH, SFX_WIN
+from constant import DEFAULT_FONT, LOGICAL_HEIGHT, LOGICAL_WIDTH, SFX_BOSS_DEATH, SFX_CHEESE, SFX_LEVEL_START, SFX_TOM_DEATH, SFX_WIN, get_resource_path
 from entity.projectile import Decoy, Rocket
 from core.camera import Camera
 from core.resource import resource_manager
@@ -85,7 +85,7 @@ class LevelScene(Scene):
         Args:
             level_id: ID уровня для загрузки.
         """
-        path = os.path.join("level", f"level{level_id}.json")
+        path = get_resource_path(os.path.join("level", f"level{level_id}.json"))
         with open(path, "r") as f:
             self.level_data = json.load(f)
             

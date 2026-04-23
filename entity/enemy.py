@@ -12,7 +12,7 @@ import os
 import pygame
 from core.resource import resource_manager
 from core.mixer import mixer
-from constant import TOM_PATH, BROOM_PATH, BOSS_PATH, SFX_HURT, SFX_TOM_DEATH, SFX_BOSS_DEATH
+from constant import TOM_PATH, BROOM_PATH, BOSS_PATH, SFX_HURT, SFX_TOM_DEATH, SFX_BOSS_DEATH, get_resource_path
 
 class Enemy(pygame.sprite.Sprite):
     """
@@ -23,7 +23,7 @@ class Enemy(pygame.sprite.Sprite):
         super().__init__()
         
         # Загрузка конфигурации врагов
-        config_path = os.path.join("config", "enemy.toml")
+        config_path = get_resource_path(os.path.join("config", "enemy.toml"))
         if not os.path.exists(config_path):
             self.config = {
                 "speed": 150.0,

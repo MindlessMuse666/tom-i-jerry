@@ -4,6 +4,7 @@
 """
 import pygame
 from setting import settings
+from constant import get_resource_path
 
 class Mixer:
     """
@@ -26,7 +27,9 @@ class Mixer:
 
     def play_music(self, music_path, loop=-1, fade_ms=500):
         """Загружает и проигрывает фоновую музыку."""
-        pygame.mixer.music.load(music_path)
+        # Исправлено: используем get_resource_path для загрузки музыки из EXE
+        full_path = get_resource_path(music_path)
+        pygame.mixer.music.load(full_path)
         pygame.mixer.music.set_volume(settings.music_volume)
         pygame.mixer.music.play(loop, fade_ms=fade_ms)
 

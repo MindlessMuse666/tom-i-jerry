@@ -5,7 +5,7 @@ import numpy as np
 from moviepy import *
 from scene.base import Scene
 from ui.button import Button
-from constant import DEFAULT_FONT, LOGICAL_WIDTH, LOGICAL_HEIGHT, ASSET_DIR
+from constant import DEFAULT_FONT, LOGICAL_WIDTH, LOGICAL_HEIGHT, ASSET_DIR, get_resource_path
 from core.resource import resource_manager
 from core.mixer import mixer
 
@@ -63,7 +63,9 @@ class CreditsScene(Scene):
     def start_video(self):
         """Запуск воспроизведения видео и аудио."""
         try:
-            self.cap = cv2.VideoCapture(self.video_path)
+            # Исправлено: используем get_resource_path для доступа к видео внутри EXE
+            full_video_path = get_resource_path(self.video_path)
+            self.cap = cv2.VideoCapture(full_video_path)
             if not self.cap.isOpened():
                 raise Exception("Не удалось открыть видеофайл")
             
@@ -73,9 +75,10 @@ class CreditsScene(Scene):
             # Извлечение и запуск аудио через MoviePy (кроссплатформенно)
             try:
                 from moviepy import VideoFileClip
-                clip = VideoFileClip(self.video_path)
+                clip = VideoFileClip(full_video_path)
                 # Создание временного mp3 для проигрывания через pygame.mixer.music
-                temp_audio = os.path.join("asset", "other", "temp_credits_audio.mp3")
+                # Для EXE сохраняем во внешнюю временную папку или рядом с EXE
+                temp_audio = "temp_credits_audio.mp3" 
                 if not os.path.exists(temp_audio):
                     clip.audio.write_audiofile(temp_audio, logger=None)
                 
@@ -85,7 +88,7 @@ class CreditsScene(Scene):
                 print(f"Ошибка аудио Moviepy: {audio_e}")
                 # Попытка прямого воспроизведения, если аудиодорожка поддерживается
                 try:
-                    pygame.mixer.music.load(self.video_path)
+                    pygame.mixer.music.load(full_video_path)
                     pygame.mixer.music.play()
                 except:
                     print("Воспроизведение видео без звука")

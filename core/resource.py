@@ -5,6 +5,8 @@
 import pygame
 import os
 
+from constant import get_resource_path
+
 class ResourceManager:
     """
     Класс-синглтон для централизованного управления ресурсами.
@@ -17,11 +19,13 @@ class ResourceManager:
     def get_image(self, path):
         """Загружает изображение и конвертирует его в оптимальный формат."""
         if path not in self.images:
-            if os.path.exists(path):
-                img = pygame.image.load(path).convert_alpha()
+            # Исправлено: используем get_resource_path для корректной работы в EXE
+            full_path = get_resource_path(path)
+            if os.path.exists(full_path):
+                img = pygame.image.load(full_path).convert_alpha()
                 self.images[path] = img
             else:
-                print(f"Warning: Image not found at {path}")
+                print(f"Warning: Image not found at {full_path}")
                 # Создание заглушки, если изображение отсутствует
                 placeholder = pygame.Surface((32, 32))
                 placeholder.fill((255, 0, 255)) # Пурпурный
@@ -31,13 +35,14 @@ class ResourceManager:
     def get_sound(self, path):
         """Загружает звуковой эффект и устанавливает громкость."""
         if path not in self.sounds:
-            if os.path.exists(path):
-                sound = pygame.mixer.Sound(path)
+            full_path = get_resource_path(path)
+            if os.path.exists(full_path):
+                sound = pygame.mixer.Sound(full_path)
                 from setting import settings
                 sound.set_volume(settings.sfx_volume)
                 self.sounds[path] = sound
             else:
-                print(f"Warning: Sound not found at {path}")
+                print(f"Warning: Sound not found at {full_path}")
                 return None
         return self.sounds[path]
 
@@ -50,10 +55,11 @@ class ResourceManager:
         """Загружает шрифт указанного размера."""
         key = (path, size)
         if key not in self.fonts:
-            if os.path.exists(path):
-                self.fonts[key] = pygame.font.Font(path, size)
+            full_path = get_resource_path(path)
+            if os.path.exists(full_path):
+                self.fonts[key] = pygame.font.Font(full_path, size)
             else:
-                print(f"Warning: Font not found at {path}")
+                print(f"Warning: Font not found at {full_path}")
                 self.fonts[key] = pygame.font.SysFont("Arial", size)
         return self.fonts[key]
 

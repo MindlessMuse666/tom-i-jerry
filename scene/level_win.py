@@ -2,7 +2,7 @@ import pygame
 import os
 from scene.base import Scene
 from ui.button import Button
-from constant import DEFAULT_FONT, LOGICAL_WIDTH, LOGICAL_HEIGHT, BG_WIN
+from constant import DEFAULT_FONT, LOGICAL_WIDTH, LOGICAL_HEIGHT, BG_WIN, get_resource_path
 from core.resource import resource_manager
 from core.mixer import mixer
 
@@ -52,8 +52,10 @@ class LevelWinScene(Scene):
         """Переход к следующему уровню или финальным титрам."""
         next_id = self.current_level_id + 1
         # Проверка существования следующего уровня
-        next_path = os.path.join("level", f"level{next_id}.json")
-        if os.path.exists(next_path):
+        next_rel_path = os.path.join("level", f"level{next_id}.json")
+        next_full_path = get_resource_path(next_rel_path)
+        
+        if os.path.exists(next_full_path):
             self.game.state_machine.set_state("LEVEL", level_id=next_id)
         elif self.current_level_id == 3:
             # После 3-го уровня запускаем финальные титры

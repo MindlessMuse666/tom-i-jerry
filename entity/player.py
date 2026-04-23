@@ -8,7 +8,7 @@ try:
 except ImportError:
     import tomli as tomllib
 import os
-from constant import PLAYER_PATH, SFX_DECOY_THROW
+from constant import PLAYER_PATH, SFX_DECOY_THROW, get_resource_path
 from core.resource import resource_manager
 from core.mixer import mixer
 
@@ -20,7 +20,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
         
         # Загрузка конфигурации из TOML
-        config_path = os.path.join("config", "player.toml")
+        config_path = get_resource_path(os.path.join("config", "player.toml"))
         with open(config_path, "rb") as f:
             self.config = tomllib.load(f)
             
