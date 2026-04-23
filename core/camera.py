@@ -1,7 +1,14 @@
+"""
+Модуль камеры для управления отображением игрового мира.
+Реализует следование за игроком с эффектом плавности (lerp) и смещением в сторону курсора.
+"""
 import pygame
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, LOGICAL_WIDTH, LOGICAL_HEIGHT
+from constant import LOGICAL_WIDTH, LOGICAL_HEIGHT
 
 class Camera:
+    """
+    Класс камеры, вычисляющий смещение отрисовки для всех объектов мира.
+    """
     def __init__(self, width, height):
         self.offset = pygame.Vector2(0, 0)
         self.width = width
@@ -9,33 +16,32 @@ class Camera:
         self.lerp_speed = 0.1
 
     def apply(self, entity):
+        """Возвращает прямоугольник объекта, смещенный относительно камеры."""
         return entity.rect.move(-self.offset.x, -self.offset.y)
 
     def update(self, target_rect, mouse_pos=None):
-        # Target position is center of logical screen
+        """
+        Обновляет позицию камеры на основе целевого объекта (игрока) и курсора мыши.
+        """
+        # Целевая позиция - центр логического экрана
         target_x = target_rect.centerx - LOGICAL_WIDTH // 2
         target_y = target_rect.centery - LOGICAL_HEIGHT // 2
         
-        # Mouse offset (lerp)
+        # Смещение камеры в сторону курсора (плавный взгляд вперед)
         if mouse_pos:
-            # Shift camera towards cursor by a small amount (e.g. 1/8 of the distance)
             mouse_shift_x = (mouse_pos[0] - LOGICAL_WIDTH // 2) * 0.2
             mouse_shift_y = (mouse_pos[1] - LOGICAL_HEIGHT // 2) * 0.2
             target_x += mouse_shift_x
             target_y += mouse_shift_y
 
-        # Clamp to level boundaries
+        # Ограничение камеры границами уровня по горизонтали
         target_x = max(0, min(target_x, self.width - LOGICAL_WIDTH))
         
-        # For Y, we allow the camera to follow upwards if the player jumps high
-        # We only clamp the bottom boundary to the level height
-        # But we allow the top to go beyond 0 if needed (though usually 0 is top of level)
-        # If height is 720 and LOGICAL_HEIGHT is 720, target_y is 0
+        # Ограничение камеры по вертикали (низ уровня)
         target_y = min(target_y, self.height - LOGICAL_HEIGHT)
-        # Allow looking up slightly beyond 0 if needed, but let's keep it clamped at 0 for now 
-        # unless we specifically want a very tall level.
-        target_y = max(-500, target_y) # Allow looking up to -500px for tall jumps
+        # Позволяем камере смотреть чуть выше при высоких прыжках
+        target_y = max(-500, target_y)
         
-        # Lerp
+        # Линейная интерполяция для плавного движения камеры
         self.offset.x += (target_x - self.offset.x) * self.lerp_speed
         self.offset.y += (target_y - self.offset.y) * self.lerp_speed

@@ -7,7 +7,17 @@ from core.resource import resource_manager
 from setting import settings
 
 class SettingsScene(Scene):
+    """
+    Сцена настроек игры.
+    Позволяет изменять громкость музыки и звуковых эффектов.
+    """
     def __init__(self, game):
+        """
+        Инициализация экрана настроек.
+
+        Args:
+            game: Объект игры.
+        """
         super().__init__(game)
         raw_bg = resource_manager.get_image(BG_MENU)
         self.bg = pygame.transform.scale(raw_bg, (LOGICAL_WIDTH, LOGICAL_HEIGHT))
@@ -16,44 +26,63 @@ class SettingsScene(Scene):
         
         center_x = LOGICAL_WIDTH // 2
         
-        # Labels - Colored
-        self.music_label = self.font.render("Музыка", True, (255, 50, 50)) # Red-ish
-        self.sfx_label = self.font.render("Эффекты", True, (50, 150, 255)) # Blue-ish
+        # Подписи к слайдерам
+        self.music_label = self.font.render("Музыка", True, (255, 50, 50))
+        self.sfx_label = self.font.render("Эффекты", True, (50, 150, 255))
         
-        # Volume Sliders - Increased width and better vertical spacing
+        # Слайдеры громкости
         slider_w = 400
         self.music_slider = Slider(center_x - slider_w // 2, 220, slider_w, settings.music_volume, self.set_music_volume, game=self.game)
         self.sfx_slider = Slider(center_x - slider_w // 2, 420, slider_w, settings.sfx_volume, self.set_sfx_volume, game=self.game)
         
-        # Back Button - Lowered to separate it from sliders
+        # Кнопка возврата
         self.back_button = Button(center_x, 620, "Назад", self.go_back, game=self.game)
         self.buttons = [self.back_button]
 
-    def set_music_volume(self, value):
+    def set_music_volume(self, value: float):
+        """
+        Изменение громкости музыки.
+
+        Args:
+            value: Значение от 0.0 до 1.0.
+        """
         settings.music_volume = value
         pygame.mixer.music.set_volume(value)
         settings.save()
 
-    def set_sfx_volume(self, value):
+    def set_sfx_volume(self, value: float):
+        """
+        Изменение громкости звуковых эффектов.
+
+        Args:
+            value: Значение от 0.0 до 1.0.
+        """
         settings.sfx_volume = value
         resource_manager.set_sfx_volume(value)
         settings.save()
 
     def go_back(self):
-        # We need to know where we came from (MENU or PAUSE)
+        """Возврат к предыдущему состоянию (Меню или Пауза)."""
         self.game.state_machine.set_state(self.previous_state)
-        # Reset to default
+        # Сброс к значению по умолчанию
         self.previous_state = "MENU"
 
-    def handle_events(self, events):
+    def handle_events(self, events: list[pygame.event.Event]):
+        """Обработка событий слайдеров и кнопок."""
         self.music_slider.handle_events(events)
         self.sfx_slider.handle_events(events)
         super().handle_events(events)
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface):
+        """
+        Отрисовка экрана настроек.
+
+        Args:
+            screen: Поверхность для отрисовки.
+        """
         screen.blit(self.bg, (0, 0))
         
-        # Draw labels - Positioned above sliders
+        # Отрисовка подписей над слайдерами
         screen.blit(self.music_label, (LOGICAL_WIDTH // 2 - self.music_label.get_width() // 2, 170))
         screen.blit(self.sfx_label, (LOGICAL_WIDTH // 2 - self.sfx_label.get_width() // 2, 370))
         

@@ -13,12 +13,24 @@ from core.mixer import mixer
 from ui.hud import HUD
 
 class LevelScene(Scene):
+    """
+    Основная игровая сцена (уровень).
+    Управляет игровым циклом, физикой, коллизиями, спауном объектов и HUD.
+    """
     def __init__(self, game):
+        """
+        Инициализация уровня.
+
+        Args:
+            game: Объект игры.
+        """
         super().__init__(game)
         self.level_data = None
         self.current_level_id = 1
         self.camera = None
         self.player = None
+        
+        # Группы спрайтов для различных игровых объектов
         self.platforms = pygame.sprite.Group()
         self.moving_platforms = pygame.sprite.Group()
         self.cheeses = pygame.sprite.Group()
@@ -27,18 +39,20 @@ class LevelScene(Scene):
         self.enemies = pygame.sprite.Group()
         self.decoys = pygame.sprite.Group()
         self.rockets = pygame.sprite.Group()
+        
         self.boss = None
         self.hole = None
         self.hud = HUD()
         
-        # Game stats for HUD
+        # Игровая статистика для HUD
         self.total_cheese = 0
         self.scale_cheese = 0
+        self.red_cheese_collected = 0
         
         self.background = None
         self.bg_width = 0
         
-        # Cheat system
+        # Система чит-кодов
         self.cheat_buffer = ""
         self.cheat_timer = 0
         self.god_mode = False
@@ -46,25 +60,38 @@ class LevelScene(Scene):
         self.frame_count = 0
 
     def enter(self, level_id=1, resume=False):
+        """
+        Вызывается при входе в сцену уровня.
+
+        Args:
+            level_id: ID загружаемого уровня.
+            resume: Если True, продолжает текущую игру без перезагрузки.
+        """
         self.current_level_id = level_id
         if not resume:
-            # Stop all previous sounds and music
+            # Остановка всех звуков перед загрузкой нового уровня
             mixer.stop_music()
             mixer.stop_all_sfx()
             
             self.load_level(level_id)
             mixer.play_music(self.level_data["music"])
-            # Play level start sound
+            # Звук начала уровня
             mixer.play_sfx(resource_manager.get_sound(SFX_LEVEL_START))
 
-    def load_level(self, level_id):
+    def load_level(self, level_id: int):
+        """
+        Загрузка конфигурации уровня из JSON-файла.
+
+        Args:
+            level_id: ID уровня для загрузки.
+        """
         path = os.path.join("level", f"level{level_id}.json")
         with open(path, "r") as f:
             self.level_data = json.load(f)
             
         self.camera = Camera(self.level_data["width"], self.level_data["height"])
         
-        # Background - scale to screen height 720
+        # Загрузка фона с масштабированием под высоту экрана (720px)
         raw_bg = resource_manager.get_image(self.level_data["background"])
         bg_height = 720
         bg_aspect = raw_bg.get_width() / raw_bg.get_height()
@@ -72,15 +99,15 @@ class LevelScene(Scene):
         self.background = pygame.transform.scale(raw_bg, (bg_width, bg_height))
         self.bg_width = self.background.get_width()
         
-        # Spawn player
+        # Спаун игрока
         spawn = self.level_data["spawn_point"]
         self.player = Player(spawn[0], spawn[1])
         
-        # Load platforms
+        # Загрузка платформ
         self.platforms.empty()
         from constant import GROUND_PATH
         for i, p in enumerate(self.level_data["platforms"]):
-            # Use GROUND_PATH for the first platform (ground) or any very wide platform
+            # Используем текстуру земли для первой платформы или очень широких участков
             path = GROUND_PATH if i == 0 or p[2] > 1000 else None
             if path:
                 self.platforms.add(Platform(p[0], p[1], p[2], p[3], image_path=path))
@@ -91,26 +118,26 @@ class LevelScene(Scene):
         for mp in self.level_data["moving_platforms"]:
             self.moving_platforms.add(MovingPlatform(mp["x"], mp["y"], mp["width"], mp["height"], mp["path"], mp["speed"]))
             
-        # Load Cheeses
+        # Загрузка сыра
         self.cheeses.empty()
         for c in self.level_data["cheeses"]:
             if isinstance(c, list):
                 self.cheeses.add(Cheese(c[0], c[1]))
-            else: # Dictionary for red cheese or special properties
+            else: # Словарь для красного сыра или особых свойств
                 is_red = c.get("is_red", False)
                 self.cheeses.add(Cheese(c["x"], c["y"], is_red=is_red))
             
-        # Load Traps
+        # Загрузка капканов
         self.traps.empty()
         for t in self.level_data["traps"]:
             self.traps.add(Trap(t[0], t[1]))
             
-        # Load Crates
+        # Загрузка ящиков
         self.crates.empty()
         for cr in self.level_data["crates"]:
             self.crates.add(Crate(cr[0], cr[1]))
             
-        # Load Enemies
+        # Загрузка врагов
         self.enemies.empty()
         for en in self.level_data["enemies"]:
             if en["type"] == "tom":
@@ -118,70 +145,69 @@ class LevelScene(Scene):
             elif en["type"] == "broom":
                 self.enemies.add(Broom(en["x"], en["y"]))
         
-        # Load Boss (Level 3 specific)
+        # Загрузка босса (только для уровня 3)
         if "boss_spawn" in self.level_data:
             bx, by = self.level_data["boss_spawn"]
-            # Position boss slightly higher as requested
+            # Спауним босса чуть выше для корректной позиции на платформе
             self.boss = BossTom(bx, by - 50)
         else:
             self.boss = None
             
-        # Load Hole (if exists in level data)
+        # Загрузка выхода (норы)
         if "hole" in self.level_data:
             hx, hy = self.level_data["hole"]
             self.hole = Hole(hx, hy)
         else:
             self.hole = None
             
-        # Initial stats
+        # Сброс статистики
         self.total_cheese = 0
         self.scale_cheese = 0
         self.red_cheese_collected = 0
-        self.frame_count = 0 # Reset frame count for new level
+        self.frame_count = 0
         
-        # Hole appearance condition: count all visible cheeses AND cheeses inside crates
-        # (Each crate currently spawns exactly 1 cheese when broken)
-        # For Level 3 (Boss), we might have a specific requirement (25 red cheeses)
+        # Условие появления выхода: собрать весь доступный сыр
         if self.current_level_id == 3:
-            self.cheeses_to_spawn_hole = 25
+            self.cheeses_to_spawn_hole = 25 # Для босса нужно 25 красных сыров
         else:
             self.cheeses_to_spawn_hole = len(self.cheeses) + len(self.crates)
 
-    def handle_events(self, events):
+    def handle_events(self, events: list[pygame.event.Event]):
+        """Обработка ввода игрока и системы читов."""
         self.player.handle_input()
         
         for event in events:
             if event.type == pygame.KEYDOWN:
-                # Cheat input collection
+                # Набор чит-кода
                 if event.key >= pygame.K_0 and event.key <= pygame.K_9:
                     self.cheat_buffer += event.unicode
-                    self.cheat_timer = 2.0 # Reset timer on each keypress
+                    self.cheat_timer = 2.0 # Сброс таймера при нажатии
                     self.check_cheats()
                 
+                # Использование приманки
                 if event.key == pygame.K_f:
-                    # Get mouse pos and convert to world coords
                     mouse_pos = pygame.mouse.get_pos()
                     world_mouse = mouse_pos + self.camera.offset
                     self.player.throw_decoy(self.decoys, world_mouse)
+                # Пауза
                 elif event.key == pygame.K_ESCAPE:
                     self.game.state_machine.set_state("PAUSE", level_id=self.current_level_id)
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1: # Left Click
+                if event.button == 1: # Левый клик (приманка)
                     mouse_pos = pygame.mouse.get_pos()
                     world_mouse = mouse_pos + self.camera.offset
                     self.player.throw_decoy(self.decoys, world_mouse)
 
     def check_cheats(self):
+        """Проверка введенных комбинаций чит-кодов."""
         if "0000" in self.cheat_buffer:
             self.god_mode = not self.god_mode
             self.cheat_buffer = ""
-            # Reset player health if enabling god mode
             if self.god_mode:
                 self.player.health = self.player.config["max_health"]
-            # Play a sound to confirm cheat
             mixer.play_sfx(resource_manager.get_sound(SFX_CHEESE))
-            print(f"God Mode: {self.god_mode}")
+            print(f"Режим Бога: {self.god_mode}")
         elif "9999" in self.cheat_buffer:
             self.cheat_buffer = ""
             mixer.play_sfx(resource_manager.get_sound(SFX_WIN))
@@ -192,12 +218,19 @@ class LevelScene(Scene):
             self.debug_mode = not self.debug_mode
             self.cheat_buffer = ""
             mixer.play_sfx(resource_manager.get_sound(SFX_CHEESE))
-            print(f"Debug Mode: {self.debug_mode}")
+            print(f"Режим отладки: {self.debug_mode}")
 
-    def update(self, dt):
-        self.dt = dt # Store for draw
+    def update(self, dt: float):
+        """
+        Обновление всей игровой логики уровня.
+
+        Args:
+            dt: Дельта времени.
+        """
+        self.dt = dt
         self.frame_count += 1
-        # Update cheat timer
+        
+        # Обновление таймера чит-кода
         if self.cheat_timer > 0:
             self.cheat_timer -= dt
             if self.cheat_timer <= 0:
@@ -206,25 +239,24 @@ class LevelScene(Scene):
         self.moving_platforms.update(dt)
         self.traps.update(dt)
         
-        # Solid platforms for player and other entities
-        # Filter out broken crates so they don't have collision
+        # Список твердых объектов для коллизий (платформы + целые ящики)
         solids = list(self.platforms) + list(self.moving_platforms) + [c for c in self.crates if not c.is_broken]
         
         self.decoys.update(dt, solids)
         self.player.update(dt, solids)
         self.enemies.update(dt, self.player, solids, self.decoys)
-        # Check for enemies that fell off
+        
+        # Проверка падения врагов в пропасть
         for enemy in list(self.enemies):
             if hasattr(enemy, 'fell_off') and enemy.fell_off:
-                # Spawn cheese at spawn point
+                # Спаун сыра на месте начального появления врага
                 self.cheeses.add(Cheese(enemy.spawn_pos.x, enemy.spawn_pos.y))
                 enemy.kill()
 
+        # Проверка падения ящиков в пропасть
         self.crates.update(dt, solids)
-        # Check for crates that fell off
         for crate in list(self.crates):
             if hasattr(crate, 'fell_off') and crate.fell_off:
-                # Spawn cheese at spawn point
                 self.cheeses.add(Cheese(crate.spawn_pos.x, crate.spawn_pos.y))
                 crate.kill()
 
@@ -233,23 +265,23 @@ class LevelScene(Scene):
         if self.boss:
             self.boss.update(dt, self.player, self.rockets, self.crates)
         
-        # Player collisions
-        # 1. Cheese
+        # Обработка столкновений игрока
+        # 1. Сыр
         collected = pygame.sprite.spritecollide(self.player, self.cheeses, True)
         for c in collected:
             c.collect()
             if c.is_red:
                 self.red_cheese_collected += 1
-                # Red cheese also counts towards total if needed, but here it's for level 3
             else:
                 self.total_cheese += 1
                 self.scale_cheese += 1
+                # Каждые 5 сыров восстанавливают 1 HP
                 if self.scale_cheese >= 5:
                     self.scale_cheese = 0
                     if self.player.health < self.player.config["max_health"]:
                         self.player.health += 1
             
-            # Hole appearance condition
+            # Условие активации выхода
             condition_met = False
             if self.current_level_id == 3:
                 condition_met = self.red_cheese_collected >= self.cheeses_to_spawn_hole
@@ -258,19 +290,17 @@ class LevelScene(Scene):
                 
             if condition_met and self.hole:
                 if self.current_level_id == 3:
-                     # Play boss death sound
                      mixer.play_sfx(resource_manager.get_sound(SFX_BOSS_DEATH))
                 self.hole.activate()
 
-        # 1.1 Hole collision
+        # 1.1 Столкновение с норой (победа)
         if self.hole and self.hole.active:
             if self.player.rect.colliderect(self.hole.rect):
-                # Level complete!
                 self.game.state_machine.set_state("LEVEL_WIN", 
                                                 cheese_count=self.total_cheese, 
                                                 level_id=self.current_level_id)
 
-        # 2. Traps
+        # 2. Капканы
         traps_hit = pygame.sprite.spritecollide(self.player, self.traps, False)
         for trap in traps_hit:
             if trap.active:
@@ -280,13 +310,13 @@ class LevelScene(Scene):
                 else:
                     trap.activate()
 
-        # 3. Enemies
+        # 3. Враги
         enemies_hit = pygame.sprite.spritecollide(self.player, self.enemies, False)
         for enemy in enemies_hit:
             if not self.god_mode:
                 self.player.take_damage()
         
-        # 3.0 Boss/Projectiles
+        # 3.0 Босс и снаряды
         if self.boss:
             if self.player.rect.colliderect(self.boss.rect):
                 if not self.god_mode:
@@ -299,125 +329,47 @@ class LevelScene(Scene):
                     rocket.explode()
             else:
                 rocket.explode()
-        
-        # 3.0.1 Rocket/Platform/Crate collision
-        for rocket in list(self.rockets):
-            if pygame.sprite.spritecollide(rocket, self.platforms, False) or \
-               pygame.sprite.spritecollide(rocket, self.moving_platforms, False) or \
-               pygame.sprite.spritecollide(rocket, self.crates, False):
-                rocket.explode()
-        
-        # 3.1 Fall damage (Out of bounds)
-        # If player falls significantly below the level height
-        # Add a small delay/check to prevent immediate death on spawn if dt was large
-        if self.frame_count > 10 and self.player.pos.y > self.level_data.get("height", 2000) + 500:
-             if not self.god_mode:
-                 self.player.health = 0
-             else:
-                 # Respawn at spawn point if god mode
-                 spawn = self.level_data["spawn_point"]
-                 self.player.pos = pygame.Vector2(spawn[0], spawn[1])
-                 self.player.vel = pygame.Vector2(0, 0)
-        
-        # 5. Death check
-        if self.player.health <= 0:
+
+        # 4. Проверка смерти или падения игрока
+        if self.player.health <= 0 or (self.player.pos.y > self.level_data["height"] + 200 and self.frame_count > 10):
             self.game.state_machine.set_state("GAME_OVER", cheese_count=self.total_cheese)
 
-        # 4. Crate/Enemy/Decoy interaction
-        for crate in list(self.crates):
-            if crate.is_broken: continue
-            
-            # 4.1 Boss Crate: hit player while falling
-            if crate.is_boss_crate and not crate.has_dealt_fall_damage:
-                if crate.vel.y > 0 and self.player.rect.colliderect(crate.rect):
-                    if not self.god_mode:
-                        self.player.take_damage()
-                    crate.has_dealt_fall_damage = True
-                    crate.break_crate()
-            
-            # A crate can only kill enemies if it's actually MOVING horizontally 
-            # and was activated by the player
-            if crate.activated_by_player and abs(crate.vel.x) > 10.0:
-                enemies_hit_crate = pygame.sprite.spritecollide(crate, self.enemies, False)
-                for enemy in enemies_hit_crate:
-                    cx, cy = crate.rect.x, crate.rect.y
-                    if crate.break_crate():
-                        mixer.play_sfx(resource_manager.get_sound(SFX_TOM_DEATH))
-                        enemy.kill()
-                        self.cheeses.add(Cheese(cx, cy))
-                
-                # Boss crate special logic: drop red cheese when it hits ground or player
-                if crate.is_boss_crate:
-                    # Check if hit ground
-                    if crate.vel.y == 0: # It landed
-                        cx, cy = crate.rect.centerx, crate.rect.top
-                        if crate.break_crate():
-                            import random
-                            # 75% chance for red cheese
-                            if random.random() < 0.75:
-                                self.cheeses.add(Cheese(cx, cy, is_red=True))
-                    
-                    # Check if hit player (already handled above but for cheese spawn)
-                    if self.player.rect.colliderect(crate.rect):
-                         cx, cy = crate.rect.centerx, crate.rect.top
-                         if crate.break_crate():
-                             import random
-                             if random.random() < 0.75:
-                                 self.cheeses.add(Cheese(cx, cy, is_red=True))
+        # Обновление камеры
+        self.camera.update(self.player.rect, dt)
 
-                # Crate also breaks if it hits a decoy (distraction mechanic)
-                decoys_hit_crate = pygame.sprite.spritecollide(crate, self.decoys, True)
-                if decoys_hit_crate:
-                    crate.break_crate()
+    def draw(self, screen: pygame.Surface):
+        """Отрисовка всех объектов уровня с учетом камеры."""
+        # Параллакс фона
+        bg_x = -(self.camera.offset.x * 0.5) % self.bg_width
+        screen.blit(self.background, (bg_x, 0))
+        if bg_x > 0:
+            screen.blit(self.background, (bg_x - self.bg_width, 0))
+        else:
+            screen.blit(self.background, (bg_x + self.bg_width, 0))
             
-            # 4.2 Crate breaks on Trap
-            traps_hit_crate = pygame.sprite.spritecollide(crate, self.traps, False)
-            for trap in traps_hit_crate:
-                if trap.active:
-                    cx, cy = crate.rect.x, crate.rect.y
-                    if crate.break_crate():
-                        trap.activate()
-                        # Spawn cheese from crate
-                        self.cheeses.add(Cheese(cx, cy))
-        
-        self.camera.update(self.player.rect, pygame.mouse.get_pos())
-
-    def draw(self, screen):
-        # Draw parallax background
-        bg_offset = -(self.camera.offset.x * 0.5) % self.bg_width
-        screen.blit(self.background, (bg_offset - self.bg_width, 0))
-        screen.blit(self.background, (bg_offset, 0))
-        screen.blit(self.background, (bg_offset + self.bg_width, 0))
-        
-        # Draw entities with camera offset
-        groups = [self.platforms, self.moving_platforms, self.cheeses, self.traps, self.crates, self.enemies, self.decoys, self.rockets]
-        for group in groups:
+        # Отрисовка игровых объектов со смещением камеры
+        for group in [self.platforms, self.moving_platforms, self.cheeses, 
+                     self.traps, self.crates, self.enemies, self.decoys, self.rockets]:
             for sprite in group:
                 screen.blit(sprite.image, sprite.rect.topleft - self.camera.offset)
-        
-        # Boss
+                
         if self.boss:
             screen.blit(self.boss.image, self.boss.rect.topleft - self.camera.offset)
-        
-        # Hole
+            
         if self.hole:
-            self.hole.draw(screen, self.camera.offset)
+            screen.blit(self.hole.image, self.hole.rect.topleft - self.camera.offset)
             
-        self.player.draw(screen, self.camera.offset)
+        screen.blit(self.player.image, self.player.rect.topleft - self.camera.offset)
         
-        # HUD
-        red_collected = None
-        if self.current_level_id == 3:
-            red_collected = self.red_cheese_collected
-            
-        self.hud.draw(screen, self.player.health, self.player.config["max_health"], 
-                      self.total_cheese, self.scale_cheese, red_collected, 
-                      self.cheeses_to_spawn_hole, self.current_level_id, getattr(self, 'dt', 0))
-        
-        # Debug position display
+        # Отрисовка отладочной информации
         if self.debug_mode:
-            from constant import DEFAULT_FONT
-            debug_font = resource_manager.get_font(DEFAULT_FONT, 20)
-            pos_text = f"POS: {int(self.player.pos.x)}, {int(self.player.pos.y)}"
-            debug_surf = debug_font.render(pos_text, True, (0, 255, 0))
-            screen.blit(debug_surf, (20, 100))
+            pos_text = f"X: {int(self.player.pos.x)} Y: {int(self.player.pos.y)}"
+            debug_surf = resource_manager.get_font(DEFAULT_FONT, 20).render(pos_text, True, (255, 255, 0))
+            screen.blit(debug_surf, (LOGICAL_WIDTH // 2 - debug_surf.get_width() // 2, 20))
+
+        # Отрисовка HUD поверх всего
+        self.hud.draw(screen, self.player.health, self.player.config["max_health"], 
+                     self.total_cheese, self.scale_cheese, 
+                     red_cheese_collected=self.red_cheese_collected if self.current_level_id == 3 else None,
+                     required_cheese=self.cheeses_to_spawn_hole,
+                     level_id=self.current_level_id, dt=self.dt)

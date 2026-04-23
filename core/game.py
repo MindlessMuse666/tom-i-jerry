@@ -1,23 +1,29 @@
 import pygame
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, LOGICAL_WIDTH, LOGICAL_HEIGHT
-from setting import settings
+from constant import LOGICAL_WIDTH, LOGICAL_HEIGHT
 from core.state_machine import StateMachine
 
 class Game:
+    """
+    Основной класс игры, управляющий окном, ресурсами и циклом событий.
+    """
     def __init__(self):
-        # Set up display
-        # Use SCALED to automatically handle the internal logical resolution
-        # and FULLSCREEN to use the actual monitor resolution
+        """
+        Инициализация игрового движка, создание окна и регистрация сцен.
+        """
+        # Настройка дисплея
+        # Используем SCALED для автоматического масштабирования логического разрешения
+        # и FULLSCREEN для запуска во весь экран
         flags = pygame.SCALED | pygame.FULLSCREEN
         
-        # We set the logical resolution as the base, 
-        # and SCALED will stretch it to SCREEN_WIDTH/HEIGHT
+        # Устанавливаем логическое разрешение 1280x720. 
+        # Режим SCALED растянет его до физического разрешения монитора.
         self.screen = pygame.display.set_mode((LOGICAL_WIDTH, LOGICAL_HEIGHT), flags)
         pygame.display.set_caption("Jerry's Escape from the Crazy Cat's House")
         
         self.running = True
         self.state_machine = StateMachine()
         
+        # Импорт сцен (ленивый импорт для предотвращения циклической зависимости)
         from scene.menu import MenuScene
         from scene.settings import SettingsScene
         from scene.level import LevelScene
@@ -26,6 +32,7 @@ class Game:
         from scene.pause import PauseScene
         from scene.credits import CreditsScene
         
+        # Регистрация всех игровых состояний
         self.state_machine.add_state("MENU", MenuScene(self))
         self.state_machine.add_state("SETTINGS", SettingsScene(self))
         self.state_machine.add_state("LEVEL", LevelScene(self))
@@ -33,16 +40,18 @@ class Game:
         self.state_machine.add_state("LEVEL_WIN", LevelWinScene(self))
         self.state_machine.add_state("PAUSE", PauseScene(self))
         self.state_machine.add_state("CREDITS", CreditsScene(self))
+        
+        # Начальное состояние — главное меню
         self.state_machine.set_state("MENU")
         
-        # Set window icon
+        # Установка иконки окна
         try:
             icon = pygame.image.load("asset/other/icon.ico")
             pygame.display.set_icon(icon)
         except Exception as e:
-            print(f"Could not load icon: {e}")
+            print(f"Не удалось загрузить иконку: {e}")
         
-        # Cursor handling
+        # Настройка кастомных курсоров
         pygame.mouse.set_visible(False)
         from constant import CUR_BASIC, CUR_SELECT, CUR_CANCEL, CUR_SLIDER
         from core.resource import resource_manager
@@ -55,8 +64,9 @@ class Game:
         self.current_cursor_type = "basic"
 
     def handle_events(self):
+        """Обработка системных событий и событий ввода."""
         events = pygame.event.get()
-        # Reset cursor type to basic each frame, buttons will change it if hovered
+        # Сброс типа курсора к базовому каждый кадр; кнопки изменят его при наведении
         self.current_cursor_type = "basic"
         
         for event in events:
@@ -65,18 +75,26 @@ class Game:
         
         self.state_machine.handle_events(events)
 
-    def update(self, dt):
+    def update(self, dt: float):
+        """
+        Обновление логики текущей активной сцены.
+
+        Args:
+            dt: Дельта времени.
+        """
         self.state_machine.update(dt)
 
     def draw(self):
-        self.screen.fill((0, 0, 0)) # Default black fill
+        """Отрисовка кадра: сцена + кастомный курсор."""
+        self.screen.fill((0, 0, 0)) # Заливка черным цветом по умолчанию
         self.state_machine.draw(self.screen)
         
-        # Draw custom cursor last
+        # Отрисовка курсора мыши поверх всех элементов
         cursor_img = self.cursors.get(self.current_cursor_type, self.cursors["basic"])
         self.screen.blit(cursor_img, pygame.mouse.get_pos())
         
         pygame.display.flip()
 
     def quit(self):
+        """Завершение работы игры."""
         self.running = False

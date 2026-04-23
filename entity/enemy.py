@@ -1,3 +1,8 @@
+"""
+Модуль врагов.
+Включает базовый класс врага, Тома, Метлу и Босса.
+Реализует патрулирование, преследование и логику битвы с боссом.
+"""
 try:
     import tomllib
 except ImportError:
@@ -10,10 +15,14 @@ from core.mixer import mixer
 from constant import TOM_PATH, BROOM_PATH, BOSS_PATH, SFX_HURT, SFX_TOM_DEATH, SFX_BOSS_DEATH
 
 class Enemy(pygame.sprite.Sprite):
+    """
+    Базовый класс для всех обычных врагов.
+    Поддерживает состояния патрулирования, преследования и поиска игрока.
+    """
     def __init__(self, x, y, image_path, frame_w=32, frame_h=32):
         super().__init__()
         
-        # Load config
+        # Загрузка конфигурации врагов
         config_path = os.path.join("config", "enemy.toml")
         if not os.path.exists(config_path):
             self.config = {
@@ -31,7 +40,7 @@ class Enemy(pygame.sprite.Sprite):
         self.scale_factor = 3
         self.frames = self.load_frames(frame_w, frame_h)
         
-        self.state = "PATROL" # PATROL, CHASE, LOST
+        self.state = "PATROL" # Состояния: PATROL (патруль), CHASE (погоня), LOST (потеря цели)
         self.frame_index = 0
         self.animation_speed = 6
         self.animation_timer = 0
@@ -40,34 +49,32 @@ class Enemy(pygame.sprite.Sprite):
         self.image = self.frames["IDLE"][0]
         self.rect = self.image.get_rect(topleft=(x, y))
         self.pos = pygame.Vector2(x, y)
-        self.spawn_pos = pygame.Vector2(x, y)
+        self.spawn_pos = pygame.Vector2(x, y) # Позиция для спауна сыра при смерти
         self.vel = pygame.Vector2(0, 0)
         self.gravity = 1200
         
         self.on_ground = False
         self.health = self.config["health"]
-        self.fell_off = False # Flag for LevelScene
+        self.fell_off = False # Флаг падения в пропасть
 
-        # Patrol settings
+        # Настройки патрулирования
         self.start_x = x
         self.patrol_dist = self.config.get("patrol_distance", 200.0)
-        self.patrol_dir = 1 # 1 right, -1 left
+        self.patrol_dir = 1 # 1 вправо, -1 влево
         
-        # Timers
         self.lost_timer = 0
         self.lost_pause_duration = 2.0
 
     def load_frames(self, w, h):
+        """Загрузка кадров ожидания и ходьбы."""
         frames = {"IDLE": [], "WALK": []}
-        # Both IDLE and WALK are in Row 1 (y=0)
-        # IDLE is Frame 1 (col=0), WALK is Frame 2 (col=1)
         
-        # IDLE (Frame 1)
+        # Ожидание (кадр 1)
         surf_idle = pygame.Surface((w, h), pygame.SRCALPHA)
         surf_idle.blit(self.sprite_sheet, (0, 0), (0, 0, w, h))
         frames["IDLE"].append(pygame.transform.scale(surf_idle, (w * self.scale_factor, h * self.scale_factor)))
         
-        # WALK (Frame 2)
+        # Ходьба (кадр 2)
         surf_walk = pygame.Surface((w, h), pygame.SRCALPHA)
         surf_walk.blit(self.sprite_sheet, (0, 0), (w, 0, w, h))
         frames["WALK"].append(pygame.transform.scale(surf_walk, (w * self.scale_factor, h * self.scale_factor)))
@@ -75,40 +82,37 @@ class Enemy(pygame.sprite.Sprite):
         return frames
 
     def update(self, dt, player, platforms, decoys=None):
-        # 1. Gravity
+        """Обновление логики ИИ и движения."""
+        # 1. Гравитация
         self.vel.y += self.gravity * dt
         
-        # 2. Logic based on distance to player OR decoys
+        # 2. Определение цели (игрок или приманка)
         target_pos = pygame.Vector2(player.rect.center)
         target_dist = (target_pos - pygame.Vector2(self.rect.center)).length()
         is_chasing_decoy = False
         
-        # Decoys attract enemies even more than player
+        # Приманки отвлекают врагов сильнее, чем игрок
         if decoys and len(decoys) > 0:
-            # Get the latest decoy (last in group)
             latest_decoy = decoys.sprites()[-1]
             decoy_pos = pygame.Vector2(latest_decoy.rect.center)
             decoy_dist = (decoy_pos - pygame.Vector2(self.rect.center)).length()
             
-            # If decoy is within attraction radius, prioritize it!
             if decoy_dist < self.config["chase_radius"] * 1.5:
                 target_pos = decoy_pos
                 target_dist = decoy_dist
                 is_chasing_decoy = True
         
+        # Переключение состояний ИИ
         if target_dist < self.config["chase_radius"] or is_chasing_decoy:
-            # Switch to chase
             self.state = "CHASE"
             self.lost_timer = 0
         elif self.state == "CHASE":
-            # Just lost target
             self.state = "LOST"
             self.lost_timer = 0
             self.vel.x = 0
 
-        # 3. Action based on current state
+        # 3. Выполнение действий в зависимости от состояния
         if self.state == "CHASE":
-            # Chase target (player or decoy)
             if abs(target_pos.x - self.rect.centerx) > 10:
                 self.patrol_dir = 1 if target_pos.x > self.rect.centerx else -1
                 self.vel.x = self.config["speed"] * self.patrol_dir
@@ -117,23 +121,18 @@ class Enemy(pygame.sprite.Sprite):
                 self.vel.x = 0
         
         elif self.state == "LOST":
-            # Stay still for a bit
             self.vel.x = 0
             self.lost_timer += dt
             if self.lost_timer >= self.lost_pause_duration:
                 self.state = "PATROL"
-                # Keep current facing for patrol start
                 self.patrol_dir = 1 if self.facing_right else -1
         
         elif self.state == "PATROL":
-            # Normal patrol
             self.vel.x = self.config["speed"] * self.patrol_dir
             self.facing_right = (self.patrol_dir == 1)
             
-            # 3.1 Edge Detection (Don't fall off during patrol)
-            # Only if on ground
+            # Обнаружение края (чтобы не падать при патрулировании)
             if self.on_ground:
-                # Check point ahead and below
                 look_ahead_x = self.rect.right + 5 if self.patrol_dir == 1 else self.rect.left - 5
                 look_ahead_rect = pygame.Rect(look_ahead_x, self.rect.bottom + 5, 1, 1)
                 
@@ -145,36 +144,33 @@ class Enemy(pygame.sprite.Sprite):
                 
                 if not any_platform_ahead:
                     self.patrol_dir *= -1
-                    self.vel.x = 0 # Stop for this frame
+                    self.vel.x = 0
             
-            # 3.2 Boundary check
+            # Проверка границ зоны патрулирования
             if self.patrol_dir == 1 and self.pos.x >= self.start_x + self.patrol_dist:
                 self.patrol_dir = -1
             elif self.patrol_dir == -1 and self.pos.x <= self.start_x:
                 self.patrol_dir = 1
 
-        # 4. Movement execution
-        # Horizontal
+        # 4. Физика движения
         self.pos.x += self.vel.x * dt
         self.rect.x = round(self.pos.x)
         if self.check_collisions(platforms, 'horizontal'):
             if self.state == "PATROL":
                 self.patrol_dir *= -1
             
-        # Vertical
         self.pos.y += self.vel.y * dt
         self.rect.y = round(self.pos.y)
         self.check_collisions(platforms, 'vertical')
         
-        # 5. Out of bounds check (Cleanup if really fell off)
-        if self.pos.y > 2000: # Far below the map
+        # 5. Проверка падения в пропасть
+        if self.pos.y > 2000:
             self.fell_off = True
-            # self.kill() is now handled by LevelScene to spawn cheese
             
         self.update_animations(dt)
 
     def update_animations(self, dt):
-        # Choose anim state
+        """Выбор и смена кадров анимации."""
         anim_state = "IDLE" if abs(self.vel.x) < 1 else "WALK"
         
         self.animation_timer += dt
@@ -187,9 +183,10 @@ class Enemy(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(self.image, True, False)
 
     def check_collisions(self, platforms, direction):
+        """Обработка столкновений с платформами."""
         hit = False
         if direction == 'vertical':
-            self.on_ground = False # Reset ground state before vertical check
+            self.on_ground = False
 
         for platform in platforms:
             if self.rect.colliderect(platform.rect):
@@ -199,7 +196,7 @@ class Enemy(pygame.sprite.Sprite):
                         self.rect.right = platform.rect.left
                     elif self.vel.x < 0:
                         self.rect.left = platform.rect.right
-                    self.pos.x = float(self.rect.x) # Sync position!
+                    self.pos.x = float(self.rect.x)
                 else:
                     if self.vel.y > 0:
                         self.rect.bottom = platform.rect.top
@@ -208,22 +205,25 @@ class Enemy(pygame.sprite.Sprite):
                     elif self.vel.y < 0:
                         self.rect.top = platform.rect.bottom
                         self.vel.y = 0
-                    self.pos.y = float(self.rect.y) # Sync position!
+                    self.pos.y = float(self.rect.y)
         return hit
 
 class Tom(Enemy):
+    """Обычный кот Том."""
     def __init__(self, x, y):
-        # Tom: cell 28x29
+        # Том: размер ячейки 28x29
         super().__init__(x, y, TOM_PATH, frame_w=28, frame_h=29)
 
 class Broom(Enemy):
+    """Враждебная Метла."""
     def __init__(self, x, y):
-        # Broom: cell 22x36
+        # Метла: размер ячейки 22x36
         super().__init__(x, y, BROOM_PATH, frame_w=22, frame_h=36)
 
 class BossTom(pygame.sprite.Sprite):
     """
-    Boss Tom with advanced AI and movement cycles.
+    Босс Том в экзоскелете. 
+    Имеет сложный цикл поведения: движение, ракеты, сброс ящиков.
     """
     def __init__(self, x, y):
         super().__init__()
@@ -232,12 +232,12 @@ class BossTom(pygame.sprite.Sprite):
         self.frames = self.load_frames()
         self.frame_index = 0
         self.animation_timer = 0
-        self.animation_speed = 8 # Faster animation for boss
+        self.animation_speed = 8
         
         self.start_pos = pygame.Vector2(x, y)
         self.pos = pygame.Vector2(x, y)
         
-        # States: MOVE_RIGHT, ROCKETS, MOVE_CENTER, WAIT_LEFT, MOVE_LEFT, CRATES, MOVE_CENTER, WAIT_RIGHT
+        # Фазы: MOVE_RIGHT, ROCKETS, MOVE_CENTER, WAIT_LEFT, MOVE_LEFT, CRATES, MOVE_CENTER, WAIT_RIGHT
         self.state = "MOVE_RIGHT"
         self.image = self.frames["IDLE"][0]
         self.rect = self.image.get_rect(center=(x, y))
@@ -247,14 +247,14 @@ class BossTom(pygame.sprite.Sprite):
         self.move_speed = 200
         self.facing_right = True
         
-        # Timings
+        # Тайминги способностей
         self.wait_duration = 0.5
         self.phase_duration = 6.0
         self.rocket_cooldown = 1.0
         self.crate_cooldown = 0.8
 
     def load_frames(self):
-        # 128x64 sprite sheet, two 64x64 frames
+        """Загрузка спрайтов босса."""
         frames = {"IDLE": [], "MOVE": [], "ACTION": []}
         for i in range(2):
             surf = pygame.Surface((64, 64), pygame.SRCALPHA)
@@ -266,12 +266,13 @@ class BossTom(pygame.sprite.Sprite):
         return frames
 
     def update(self, dt, player, projectile_group, crate_group):
+        """Обновление фаз поведения босса."""
         self.timer += dt
         
-        # 1. Update facing direction (Always face player)
+        # Всегда поворачиваться к игроку
         self.facing_right = (player.rect.centerx > self.rect.centerx)
         
-        # 2. State Logic
+        # Логика машины состояний босса
         if self.state == "MOVE_RIGHT":
             target_x = self.start_pos.x + 300
             self.move_towards(target_x, dt)
@@ -324,23 +325,23 @@ class BossTom(pygame.sprite.Sprite):
             if self.timer >= self.wait_duration:
                 self.state = "MOVE_RIGHT"
 
-        # 3. Animation
         self.animate(dt)
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
     def move_towards(self, target_x, dt):
+        """Плавное движение к заданной координате X."""
         if self.pos.x < target_x:
             self.pos.x = min(target_x, self.pos.x + self.move_speed * dt)
         elif self.pos.x > target_x:
             self.pos.x = max(target_x, self.pos.x - self.move_speed * dt)
 
     def animate(self, dt):
+        """Анимация босса."""
         self.animation_timer += dt
         if self.animation_timer >= 1.0 / self.animation_speed:
             self.animation_timer = 0
             self.frame_index = (self.frame_index + 1) % 2
             
-        # Get frame 0 or 1
         base_img = self.frames["IDLE"][self.frame_index]
         if not self.facing_right:
             self.image = pygame.transform.flip(base_img, True, False)
@@ -348,18 +349,18 @@ class BossTom(pygame.sprite.Sprite):
             self.image = base_img
 
     def fire_rocket(self, player, projectile_group):
+        """Выстрел самонаводящейся ракетой."""
         from entity.projectile import Rocket
-        # Target player's current center
         rocket = Rocket(self.rect.centerx, self.rect.centery, player.rect.center)
         projectile_group.add(rocket)
 
     def drop_crate(self, player, crate_group):
+        """Сброс тяжелого ящика сверху на игрока."""
         from entity.env import Crate
         import random
         drop_x = player.rect.centerx + random.randint(-100, 100)
         drop_x = max(64, min(1216, drop_x))
-        # Boss crates: scale 3.0 (1.5x larger than normal 2.0), faster fall
         crate = Crate(drop_x, -100, scale=3.0)
         crate.is_boss_crate = True
-        crate.gravity = 800 # Slightly faster fall than 600
+        crate.gravity = 800
         crate_group.add(crate)
