@@ -12,7 +12,15 @@ __pycache__/
 .venv/
 
 # docs
-tech.*
+# tech.*
+
+# pyIinstaller x build
+dist/
+build/
+*.spec
+
+# multimedia x temp
+asset/other/temp_credits_audio.mp3
 
 # linter
 # .markdownlint.*
