@@ -1,5 +1,5 @@
 """
-Модуль игрока (Джерри).
+Модуль Игрока.
 Реализует физику движения, анимации, обработку ввода и взаимодействие с миром.
 """
 import pygame
@@ -14,7 +14,7 @@ from core.mixer import mixer
 
 class Player(pygame.sprite.Sprite):
     """
-    Класс главного героя — мышонка Джерри.
+    Класс Игрока.
     """
     def __init__(self, x, y):
         super().__init__()
@@ -81,7 +81,7 @@ class Player(pygame.sprite.Sprite):
             self.frames["WALK"].append(frame)
             self.mirrored_frames["WALK"].append(pygame.transform.flip(frame, True, False))
         
-        # Прыжок — первый кадр ходьбы
+        # Прыжок - первый кадр ходьбы
         jump_frame = self.frames["WALK"][0]
         self.frames["JUMP"].append(jump_frame)
         self.mirrored_frames["JUMP"].append(pygame.transform.flip(jump_frame, True, False))
@@ -221,7 +221,9 @@ class Player(pygame.sprite.Sprite):
 
     def update_state(self):
         """Выбор текущего состояния анимации."""
-        if not self.on_ground:
+        if self.is_invulnerable and self.invulnerability_timer > self.config["invulnerability_time"] - 0.3:
+            new_state = "HURT"
+        elif not self.on_ground:
             new_state = "JUMP"
         elif abs(self.vel.x) > 10.0:
             new_state = "WALK"
@@ -250,7 +252,8 @@ class Player(pygame.sprite.Sprite):
         if self.is_invulnerable:
             self.invulnerability_timer -= dt
             self.blink_timer += dt
-            if self.blink_timer >= 0.1:
+            # Ускоренное мигание (каждые 0.08с вместо 0.1с)
+            if self.blink_timer >= 0.08:
                 self.blink_timer = 0
                 self.visible = not self.visible
             
@@ -259,6 +262,7 @@ class Player(pygame.sprite.Sprite):
                 self.visible = True
         else:
             self.visible = True
+            self.blink_timer = 0 # Сброс таймера мигания
 
     def take_damage(self, amount=1):
         """Получение урона и активация неуязвимости."""

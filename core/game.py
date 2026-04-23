@@ -41,7 +41,7 @@ class Game:
         self.state_machine.add_state("PAUSE", PauseScene(self))
         self.state_machine.add_state("CREDITS", CreditsScene(self))
         
-        # Начальное состояние — главное меню
+        # Начальное состояние - главное меню
         self.state_machine.set_state("MENU")
         
         # Установка иконки окна

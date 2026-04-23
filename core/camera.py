@@ -3,7 +3,7 @@
 Реализует следование за игроком с эффектом плавности (lerp) и смещением в сторону курсора.
 """
 import pygame
-from constant import LOGICAL_WIDTH, LOGICAL_HEIGHT
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, LOGICAL_WIDTH, LOGICAL_HEIGHT
 
 class Camera:
     """
@@ -19,9 +19,14 @@ class Camera:
         """Возвращает прямоугольник объекта, смещенный относительно камеры."""
         return entity.rect.move(-self.offset.x, -self.offset.y)
 
-    def update(self, target_rect, mouse_pos=None):
+    def update(self, target_rect: pygame.Rect, dt: float, mouse_pos: tuple = None):
         """
         Обновляет позицию камеры на основе целевого объекта (игрока) и курсора мыши.
+
+        Args:
+            target_rect: Прямоугольник цели (игрока).
+            dt: Дельта времени.
+            mouse_pos: Текущие координаты мыши.
         """
         # Целевая позиция - центр логического экрана
         target_x = target_rect.centerx - LOGICAL_WIDTH // 2
@@ -42,6 +47,9 @@ class Camera:
         # Позволяем камере смотреть чуть выше при высоких прыжках
         target_y = max(-500, target_y)
         
-        # Линейная интерполяция для плавного движения камеры
-        self.offset.x += (target_x - self.offset.x) * self.lerp_speed
-        self.offset.y += (target_y - self.offset.y) * self.lerp_speed
+        # Линейная интерполяция для плавного движения камеры (с учетом dt)
+        # 1.0 - (1.0 - lerp_speed) ** (dt * 60) - формула для fps-независимого lerp
+        # Но для простоты можно использовать lerp_speed * dt * 10 (где 10 - коэффициент для сохранения скорости 0.1 при 60 fps)
+        actual_lerp = min(1.0, self.lerp_speed * dt * 60)
+        self.offset.x += (target_x - self.offset.x) * actual_lerp
+        self.offset.y += (target_y - self.offset.y) * actual_lerp

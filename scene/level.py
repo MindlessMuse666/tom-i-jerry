@@ -5,7 +5,7 @@ from scene.base import Scene
 from entity.player import Player
 from entity.env import Platform, MovingPlatform, Cheese, Trap, Crate, Hole
 from entity.enemy import Tom, Broom, BossTom
-from constant import SFX_BOSS_DEATH, SFX_CHEESE, SFX_LEVEL_START, SFX_TOM_DEATH, SFX_WIN
+from constant import DEFAULT_FONT, LOGICAL_HEIGHT, LOGICAL_WIDTH, SFX_BOSS_DEATH, SFX_CHEESE, SFX_LEVEL_START, SFX_TOM_DEATH, SFX_WIN
 from entity.projectile import Decoy, Rocket
 from core.camera import Camera
 from core.resource import resource_manager
@@ -170,7 +170,10 @@ class LevelScene(Scene):
         if self.current_level_id == 3:
             self.cheeses_to_spawn_hole = 25 # Для босса нужно 25 красных сыров
         else:
+            # Исправлено: учитываем только те объекты, которые реально дают сыр
             self.cheeses_to_spawn_hole = len(self.cheeses) + len(self.crates)
+            if self.cheeses_to_spawn_hole == 0:
+                self.cheeses_to_spawn_hole = 999 # Защита от пустых уровней
 
     def handle_events(self, events: list[pygame.event.Event]):
         """Обработка ввода игрока и системы читов."""
@@ -286,7 +289,8 @@ class LevelScene(Scene):
             if self.current_level_id == 3:
                 condition_met = self.red_cheese_collected >= self.cheeses_to_spawn_hole
             else:
-                condition_met = self.total_cheese >= self.cheeses_to_spawn_hole
+                # Исправлено: выход появляется только если есть сыр и он собран
+                condition_met = self.total_cheese >= self.cheeses_to_spawn_hole and self.cheeses_to_spawn_hole > 0
                 
             if condition_met and self.hole:
                 if self.current_level_id == 3:
@@ -330,22 +334,91 @@ class LevelScene(Scene):
             else:
                 rocket.explode()
 
-        # 4. Проверка смерти или падения игрока
+        # 4. Взаимодействие с ящиками (урон врагам, игроку и разрушение)
+        for crate in list(self.crates):
+            if crate.is_broken:
+                continue
+
+            # 4.1 Падающие ящики (любые) наносят урон игроку
+            if crate.vel.y > 100.0 and self.player.rect.colliderect(crate.rect):
+                # Проверка, что ящик падает сверху на игрока
+                if crate.rect.bottom <= self.player.rect.centery:
+                    if not self.god_mode and not crate.has_dealt_fall_damage:
+                        if self.player.take_damage():
+                            crate.has_dealt_fall_damage = True
+                            crate.break_crate()
+
+            # 4.2 Ящики убивают врагов (если движутся горизонтально или падают)
+            # Снижена чувствительность для более надежного срабатывания
+            if abs(crate.vel.x) > 5.0 or crate.vel.y > 50.0:
+                enemies_hit_crate = pygame.sprite.spritecollide(crate, self.enemies, False)
+                for enemy in enemies_hit_crate:
+                    if crate.break_crate():
+                        mixer.play_sfx(resource_manager.get_sound(SFX_TOM_DEATH))
+                        enemy.kill()
+                        # Спаун сыра на месте смерти врага
+                        self.cheeses.add(Cheese(enemy.rect.centerx, enemy.rect.centery))
+
+            # 4.3 Игрок может разбить ЛЮБОЙ упавший ящик, прыгнув на него сверху
+            # ИЛИ разбить ящик босса просто коснувшись его (если он уже упал)
+            if not crate.is_broken:
+                # Используем небольшой допуск для обнаружения касания (inflate 4px)
+                if self.player.rect.inflate(4, 4).colliderect(crate.rect):
+                    # Проверка на прыжок сверху (для всех типов ящиков)
+                    is_jumping_on_top = self.player.vel.y > 0 and self.player.rect.bottom <= crate.rect.top + 25
+                    
+                    # Проверка на простое касание (только для упавших ящиков босса)
+                    is_boss_crate_landed = crate.is_boss_crate and abs(crate.vel.y) < 100.0
+                    
+                    if is_jumping_on_top or is_boss_crate_landed:
+                        if crate.break_crate():
+                            # Спаун сыра (красный для ящиков босса, обычный для остальных)
+                            is_red = False
+                            if crate.is_boss_crate:
+                                import random
+                                is_red = random.random() < 0.6
+                            
+                            self.cheeses.add(Cheese(crate.rect.centerx, crate.rect.centery, is_red=is_red))
+                            
+                            # Если разбили прыжком - даем отскок
+                            if is_jumping_on_top:
+                                self.player.vel.y = self.player.jump_force * 0.7
+                                self.player.on_ground = False
+
+            # 4.4 Ящики ломаются об капканы
+            traps_hit_crate = pygame.sprite.spritecollide(crate, self.traps, False)
+            for trap in traps_hit_crate:
+                if trap.active:
+                    if crate.break_crate():
+                        trap.activate()
+                        self.cheeses.add(Cheese(crate.rect.centerx, crate.rect.centery))
+
+        # 5. Проверка смерти или падения игрока
         if self.player.health <= 0 or (self.player.pos.y > self.level_data["height"] + 200 and self.frame_count > 10):
             self.game.state_machine.set_state("GAME_OVER", cheese_count=self.total_cheese)
 
-        # Обновление камеры
-        self.camera.update(self.player.rect, dt)
+        # Обновление камеры (с учетом dt и позиции мыши для плавности)
+        self.camera.update(self.player.rect, dt, pygame.mouse.get_pos())
 
     def draw(self, screen: pygame.Surface):
         """Отрисовка всех объектов уровня с учетом камеры."""
-        # Параллакс фона
+        # Исправленный параллакс фона (горизонтальный и вертикальный)
+        # 0.5 - коэффициент скорости для заднего плана
         bg_x = -(self.camera.offset.x * 0.5) % self.bg_width
-        screen.blit(self.background, (bg_x, 0))
-        if bg_x > 0:
-            screen.blit(self.background, (bg_x - self.bg_width, 0))
-        else:
-            screen.blit(self.background, (bg_x + self.bg_width, 0))
+        # Центрируем фон по вертикали и добавляем небольшой параллакс
+        # (LOGICAL_HEIGHT - self.background.get_height()) // 2 обычно 0, если высота 720
+        bg_y = -(self.camera.offset.y * 0.1) 
+        
+        curr_x = bg_x - self.bg_width
+        while curr_x < LOGICAL_WIDTH:
+            screen.blit(self.background, (curr_x, bg_y))
+            # Если камера ушла слишком далеко вниз, рисуем фон еще раз ниже
+            if bg_y + self.background.get_height() < LOGICAL_HEIGHT:
+                screen.blit(self.background, (curr_x, bg_y + self.background.get_height()))
+            # И выше
+            if bg_y > 0:
+                screen.blit(self.background, (curr_x, bg_y - self.background.get_height()))
+            curr_x += self.bg_width
             
         # Отрисовка игровых объектов со смещением камеры
         for group in [self.platforms, self.moving_platforms, self.cheeses, 
@@ -357,9 +430,10 @@ class LevelScene(Scene):
             screen.blit(self.boss.image, self.boss.rect.topleft - self.camera.offset)
             
         if self.hole:
-            screen.blit(self.hole.image, self.hole.rect.topleft - self.camera.offset)
+            self.hole.draw(screen, self.camera.offset)
             
-        screen.blit(self.player.image, self.player.rect.topleft - self.camera.offset)
+        # Используем метод draw игрока для поддержки анимации мигания
+        self.player.draw(screen, self.camera.offset)
         
         # Отрисовка отладочной информации
         if self.debug_mode:

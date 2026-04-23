@@ -26,18 +26,32 @@ class SettingsScene(Scene):
         
         center_x = LOGICAL_WIDTH // 2
         
-        # Подписи к слайдерам
-        self.music_label = self.font.render("Музыка", True, (255, 50, 50))
-        self.sfx_label = self.font.render("Эффекты", True, (50, 150, 255))
-        
-        # Слайдеры громкости
+        # Слайдеры громкости (приближены друг к другу для лучшего вида)
         slider_w = 400
-        self.music_slider = Slider(center_x - slider_w // 2, 220, slider_w, settings.music_volume, self.set_music_volume, game=self.game)
+        # Музыкальный блок опущен чуть ниже, чтобы быть ближе к эффектам
+        self.music_slider = Slider(center_x - slider_w // 2, 270, slider_w, settings.music_volume, self.set_music_volume, game=self.game)
         self.sfx_slider = Slider(center_x - slider_w // 2, 420, slider_w, settings.sfx_volume, self.set_sfx_volume, game=self.game)
         
         # Кнопка возврата
         self.back_button = Button(center_x, 620, "Назад", self.go_back, game=self.game)
         self.buttons = [self.back_button]
+
+    def draw_text_with_outline(self, screen, text, color, center_pos):
+        """Отрисовка текста с четкой белой обводкой."""
+        # Рендерим основной текст и обводку
+        main_surf = self.font.render(text, True, color)
+        # Белая обводка для лучшей читаемости на пестром фоне
+        outline_surf = self.font.render(text, True, (255, 255, 255))
+        
+        x = center_pos[0] - main_surf.get_width() // 2
+        y = center_pos[1]
+        
+        # Отрисовка обводки (в 8 направлениях для плотности)
+        for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2), (-2, -2), (2, 2), (-2, 2), (2, -2)]:
+            screen.blit(outline_surf, (x + dx, y + dy))
+        
+        # Отрисовка основного текста
+        screen.blit(main_surf, (x, y))
 
     def set_music_volume(self, value: float):
         """
@@ -82,9 +96,9 @@ class SettingsScene(Scene):
         """
         screen.blit(self.bg, (0, 0))
         
-        # Отрисовка подписей над слайдерами
-        screen.blit(self.music_label, (LOGICAL_WIDTH // 2 - self.music_label.get_width() // 2, 170))
-        screen.blit(self.sfx_label, (LOGICAL_WIDTH // 2 - self.sfx_label.get_width() // 2, 370))
+        # Отрисовка подписей с обводкой (позиции обновлены)
+        self.draw_text_with_outline(screen, "Музыка", (255, 50, 50), (LOGICAL_WIDTH // 2, 220))
+        self.draw_text_with_outline(screen, "Эффекты", (50, 150, 255), (LOGICAL_WIDTH // 2, 370))
         
         self.music_slider.draw(screen)
         self.sfx_slider.draw(screen)
